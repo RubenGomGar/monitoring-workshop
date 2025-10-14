@@ -49,18 +49,6 @@ cd monitoring-workshop
 - **📊 Métricas Reales**: Monitoreo de aplicación .NET real
 - **🔍 Troubleshooting**: Guías para resolver problemas comunes
 
-## 🤝 Contribuciones
-
-¡Las contribuciones son bienvenidas! Si encuentras algún problema o tienes sugerencias, no dudes en:
-
-1. Crear un issue
-2. Enviar un pull request
-3. Mejorar la documentación
-
-## 📄 Licencia
-
-Este proyecto está bajo la licencia MIT. Ver `LICENSE` para más detalles.
-
 ---
 
 **¡Disfruta del workshop!** 🎉

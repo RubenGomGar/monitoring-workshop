@@ -151,7 +151,7 @@ mindmap
       process_runtime_dotnet_assemblies_count
       kestrel_active_connections
     ⚙️ Collector Status  
-      up{job="otel-opentelemetry-collector"}
+      up{{job="otel-opentelemetry-collector"}}
       scrape_duration_seconds
 ```
 
