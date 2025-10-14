@@ -139,19 +139,19 @@ sequenceDiagram
 mindmap
   root((📊 Métricas))
     🎯 Target Info
-      deployment_environment="Development"
-      telemetry_sdk_name="opentelemetry"
-      exported_job="1.0.0/demo-api"
+      deployment_environment
+      telemetry_sdk_name
+      exported_job
     🌐 HTTP Requests
       aspnetcore_routing_match_attempts_total
       http_server_request_duration_seconds
       http_client_active_requests
     🔧 Runtime .NET
-      process_runtime_dotnet_gc_*
+      process_runtime_dotnet_gc_collections_total
       process_runtime_dotnet_assemblies_count
       kestrel_active_connections
     ⚙️ Collector Status  
-      up{{job="otel-opentelemetry-collector"}}
+      otel_collector_up
       scrape_duration_seconds
 ```
 
