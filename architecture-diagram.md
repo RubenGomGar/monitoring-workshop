@@ -136,23 +136,37 @@ sequenceDiagram
 ## 🎯 Métricas Clave Monitoreadas
 
 ```mermaid
-mindmap
-  root((📊 Métricas))
-    🎯 Target Info
-      deployment_environment
-      telemetry_sdk_name
-      exported_job
-    🌐 HTTP Requests
-      aspnetcore_routing_match_attempts_total
-      http_server_request_duration_seconds
-      http_client_active_requests
-    🔧 Runtime .NET
-      process_runtime_dotnet_gc_collections_total
-      process_runtime_dotnet_assemblies_count
-      kestrel_active_connections
-    ⚙️ Collector Status  
-      otel_collector_up
-      scrape_duration_seconds
+graph TD
+    Root["📊 Métricas Clave"]
+    
+    Root --> TargetInfo["🎯 Target Info"]
+    Root --> HTTPReq["🌐 HTTP Requests"] 
+    Root --> Runtime["🔧 Runtime .NET"]
+    Root --> Collector["⚙️ Collector Status"]
+    
+    TargetInfo --> T1["deployment_environment"]
+    TargetInfo --> T2["telemetry_sdk_name"]
+    TargetInfo --> T3["exported_job"]
+    
+    HTTPReq --> H1["aspnetcore_routing_match_attempts_total"]
+    HTTPReq --> H2["http_server_request_duration_seconds"]
+    HTTPReq --> H3["http_client_active_requests"]
+    
+    Runtime --> R1["process_runtime_dotnet_gc_collections_total"]
+    Runtime --> R2["process_runtime_dotnet_assemblies_count"]
+    Runtime --> R3["kestrel_active_connections"]
+    
+    Collector --> C1["otel_collector_up"]
+    Collector --> C2["scrape_duration_seconds"]
+
+    %% Estilos
+    classDef rootNode fill:#E6522C,stroke:#ffffff,stroke-width:3px,color:#ffffff
+    classDef categoryNode fill:#326CE5,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    classDef metricNode fill:#68217A,stroke:#ffffff,stroke-width:1px,color:#ffffff
+    
+    class Root rootNode
+    class TargetInfo,HTTPReq,Runtime,Collector categoryNode
+    class T1,T2,T3,H1,H2,H3,R1,R2,R3,C1,C2 metricNode
 ```
 
 ## 🚀 Stack Tecnológico
