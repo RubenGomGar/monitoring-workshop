@@ -1,40 +1,40 @@
-# 🚀 Workshop: Observabilidad con Kubernetes + OpenTelemetry + Prometheus + Grafana
+# 🚀 Workshop: Observability with Kubernetes + OpenTelemetry + Prometheus + Grafana
 
-Workshop completo para implementar observabilidad en aplicaciones .NET usando un stack moderno con Kubernetes local.
+Complete workshop to implement observability in .NET applications using a modern stack with local Kubernetes.
 
-## 🎯 ¿Qué aprenderás?
+## 🎯 What you'll learn
 
-- ✅ Configurar OpenTelemetry en .NET 9
-- ✅ Desplegar Prometheus + Grafana con Helm
-- ✅ Crear pipelines de métricas OTLP → Collector → Prometheus
-- ✅ Visualizar métricas reales de tu aplicación
-- ✅ Troubleshooting de configuraciones
+- ✅ Configure OpenTelemetry in .NET 9
+- ✅ Deploy Prometheus + Grafana with Helm
+- ✅ Create metrics pipelines OTLP → Collector → Prometheus
+- ✅ Visualize real metrics from your application
+- ✅ Troubleshoot configurations
 
-## 🏗️ Stack Tecnológico
+## 🏗️ Technology Stack
 
-- **Kubernetes**: Minikube con driver Docker
-- **Observabilidad**: OpenTelemetry Collector + Prometheus + Grafana
-- **Aplicación**: .NET 9 API con métricas integradas
-- **Despliegue**: Helm Charts + kubectl
+- **Kubernetes**: Minikube with Docker driver
+- **Observability**: OpenTelemetry Collector + Prometheus + Grafana
+- **Application**: .NET 9 API with built-in metrics
+- **Deployment**: Helm Charts + kubectl
 
-## 📚 Contenido del Workshop
+## 📚 Workshop Content
 
-- **[🏗️ Arquitectura && Overview](./architecture-diagram.md)** - Diagramas y explicación del stack
-- **[🔧 Setup Completo](./setup.md)** - Guía paso a paso para montar todo el entorno
-- **[🎬 Demo Visual](./demo.md)** - Demostración práctica con métricas en tiempo real
+- **[🏗️ Architecture & Overview](./architecture-diagram.md)** - Diagrams and explanation of the stack
+- **[🔧 Full Setup](./setup.md)** - Step-by-step guide to set up the entire environment
+- **[🎬 Visual Demo](./demo.md)** - Hands-on demo with real-time metrics
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start
 
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/TU_USUARIO/monitoring-workshop.git
+# 1. Clone the repository
+git clone https://github.com/YOUR_USER/monitoring-workshop.git
 cd monitoring-workshop
 
-# 2. Seguir la guía de setup
-# Ver setup.md para instrucciones detalladas
+# 2. Follow the setup guide
+# See setup.md for detailed instructions
 ```
 
-## 📋 Requisitos
+## 📋 Requirements
 
 - Docker Desktop
 - Minikube
@@ -42,13 +42,13 @@ cd monitoring-workshop
 - Helm
 - .NET 9 SDK
 
-## 🌟 Características
+## 🌟 Highlights
 
-- **🌐 100% Local**: Sin dependencias externas
-- **⚡ Setup Rápido**: Entorno completo en ~30 minutos
-- **📊 Métricas Reales**: Monitoreo de aplicación .NET real
-- **🔍 Troubleshooting**: Guías para resolver problemas comunes
+- **🌐 100% Local**: No external dependencies
+- **⚡ Fast Setup**: Full environment in ~30 minutes
+- **📊 Real Metrics**: Monitoring of a real .NET application
+- **🔍 Troubleshooting**: Guides to resolve common issues
 
 ---
 
-**¡Disfruta del workshop!** 🎉
+**Enjoy the workshop!** 🎉
