@@ -1,20 +1,20 @@
-# 🚀 Workshop: Observabilidad mínima con **Minikube (driver Docker)** + **Prometheus/Grafana** + **OpenTelemetry** + **.NET (Aspire‑ready)**
+# 🚀 Workshop: Minimal Observability with **Minikube (Docker driver)** + **Prometheus/Grafana** + **OpenTelemetry** + **.NET (Aspire‑ready)**
 
-Este workshop monta un entorno **100 % local** y **cloud‑agnostic** usando **Minikube dentro de Docker** (sin k3d ni Rancher), con:
-- Kubernetes local (Minikube, driver Docker)
+This workshop sets up a **100% local** and **cloud‑agnostic** environment using **Minikube inside Docker** (no k3d or Rancher), including:
+- Local Kubernetes (Minikube, Docker driver)
 - Prometheus + Grafana (kube‑prometheus‑stack)
 - OpenTelemetry Collector (OTLP → Prometheus)
-- App .NET (Aspire‑ready) que exporta métricas/trazas por OTLP
+- .NET app (Aspire‑ready) that exports metrics/traces via OTLP
 
-> Objetivo: **la vía más simple posible**, sin registry externo ni configuraciones complejas de red.
+> Goal: **the simplest possible path**, with no external registry and no complex network configuration.
 
 ---
 
-## 1) Requisitos
+## 1) Requirements
 
-Comprueba que tienes estas herramientas instaladas:
+Check that you have these tools installed:
 
-| Herramienta | Comando |
+| Tool | Command |
 |---|---|
 | Docker Desktop/Engine | `docker ps` |
 | Minikube | `minikube version` |
@@ -22,15 +22,15 @@ Comprueba que tienes estas herramientas instaladas:
 | Helm | `helm version` |
 | .NET 9 SDK | `dotnet --version` |
 
-Instalación rápida de Minikube (Windows con Chocolatey):
+Quick Minikube install (Windows with Chocolatey):
 ```bash
 choco install minikube -y
 ```
-(En Linux/Mac usa el método oficial de minikube).
+(On Linux/Mac use the official Minikube installation method.)
 
 ---
 
-## 2) Arranca Minikube dentro de Docker
+## 2) Start Minikube inside Docker
 
 ```bash
 minikube start -p demo --driver=docker
@@ -38,31 +38,31 @@ kubectl get nodes
 
 minikube -p demo dashboard
 ```
-Deberías ver 1 nodo `Ready`.
+You should see 1 node `Ready`.
 
-> **Tip (Windows/macOS):** asegúrate de que Docker está corriendo antes de iniciar Minikube.
+> Tip (Windows/macOS): make sure Docker is running before starting Minikube.
 
 ---
 
-## 3) Compilar imágenes directamente en el Docker de Minikube
+## 3) Build images directly in Minikube's Docker daemon
 
-Evita usar un registry. Construye dentro del daemon de Minikube:
+Avoid using a registry. Build inside Minikube's daemon:
 
 ```powershell
-# En PowerShell (Windows):
+# In PowerShell (Windows):
 & minikube -p demo docker-env | Invoke-Expression
 
-# En Bash (Linux/Mac):
+# In Bash (Linux/Mac):
 # eval $(minikube -p demo docker-env)
 
-# Verifica que está configurado:
+# Verify configuration:
 docker images
-# a partir de aquí, cualquier 'docker build' se guarda en Minikube
+# from here, any 'docker build' is stored inside Minikube
 ```
 
 ---
 
-## 4) Instala Prometheus + Grafana (kube‑prometheus‑stack)
+## 4) Install Prometheus + Grafana (kube‑prometheus‑stack)
 
 ```bash
 kubectl create ns monitoring
@@ -70,23 +70,23 @@ kubectl create ns monitoring
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 
-helm install kps prometheus-community/kube-prometheus-stack -n monitoring   --set grafana.service.type=NodePort
+helm install kps prometheus-community/kube-prometheus-stack -n monitoring --set grafana.service.type=NodePort
 ```
 
-**Espera a que todos los pods estén ready:**
+Wait for all pods to be ready:
 ```bash
 kubectl -n monitoring get pods
 
-# Espera hasta que todos muestren Ready (puede tardar 2-3 minutos)
-# Deberías ver: alertmanager, grafana, kube-state-metrics, node-exporter, prometheus-operator, prometheus-server
+# Wait until all show Ready (may take 2-3 minutes)
+# You should see: alertmanager, grafana, kube-state-metrics, node-exporter, prometheus-operator, prometheus-server
 ```
 
-Obtén la URL de Grafana:
+Get the Grafana URL:
 ```bash
 minikube -p demo service -n monitoring kps-grafana --url
 ```
 
-**Password de Grafana (usuario: `admin`):**
+Grafana password (user: `admin`):
 
 ```bash
 # Linux/macOS/Git Bash:
@@ -98,13 +98,13 @@ kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}
 kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
 ```
 
-> **Nota:** kube‑prometheus‑stack ya configura Prometheus Operator, Alertmanager y Grafana con dashboards por defecto de Kubernetes.
+> Note: kube‑prometheus‑stack already configures Prometheus Operator, Alertmanager and Grafana with default Kubernetes dashboards.
 
 ---
 
-## 5) Instala OpenTelemetry Collector (gateway mínimo)
+## 5) Install OpenTelemetry Collector (minimal gateway)
 
-Crea `otel-values.yaml` con este contenido:
+Create `otel-values.yaml` with this content:
 
 ```yaml
 mode: deployment
@@ -125,7 +125,7 @@ serviceMonitor:
   metricsEndpoints:
   - port: prom-exporter
 
-# Recursos optimizados
+# Optimized resources
 resources:
   limits:
     cpu: "1000m"
@@ -134,7 +134,7 @@ resources:
     cpu: "100m"
     memory: "128Mi"
 
-# Exportamos SOLO el puerto de métricas del exporter Prometheus
+# We only expose the Prometheus exporter metrics port
 ports:
   prom-exporter:
     enabled: true
@@ -144,7 +144,7 @@ ports:
 
 config:
   receivers:
-    # deja OTLP; el chart expondrá 4317/4318 automáticamente (no los declares a mano)
+    # leave OTLP; the chart will expose 4317/4318 automatically (do not declare them manually)
     otlp:
       protocols:
         grpc:
@@ -162,7 +162,7 @@ config:
   exporters:
     prometheus:
       endpoint: "0.0.0.0:8889"
-    # debug opcional para ver algo en logs
+    # optional debug exporter for logs
     # debug: {}
 
   service:
@@ -174,14 +174,14 @@ config:
       # traces:
       #   receivers: [otlp]
       #   processors: [memory_limiter, batch]
-      #   exporters: []   # añade Tempo/OTLP cuando quieras
+      #   exporters: []   # add Tempo/OTLP when you want
       # logs:
       #   receivers: [otlp]
       #   processors: [memory_limiter, batch]
-      #   exporters: []   # añade Loki/OTLP cuando quieras
+      #   exporters: []   # add Loki/OTLP when you want
 ```
 
-Instala el Collector:
+Install the Collector:
 ```bash
 kubectl create ns observability
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
@@ -189,38 +189,38 @@ helm repo update
 helm install otel open-telemetry/opentelemetry-collector -n observability -f otel-values.yaml
 ```
 
-**Verifica que el OpenTelemetry Collector está ready:**
+Verify the OpenTelemetry Collector is ready:
 ```bash
 kubectl -n observability get pods
 
-# Espera hasta que veas algo como:
+# Wait until you see something like:
 # otel-opentelemetry-collector-xxxxxxxxx-xxxxx   1/1     Running   0          30s
 ```
 
-> Con esto: tu app enviará **métricas/trazas** por **OTLP** al Collector. El Collector **expone /metrics (8889)** y **Prometheus** lo scrapeará (ya auto‑descubierto por el Prometheus Operator si activas ServiceMonitor; en este mínimo, puedes scrappear el Service del Collector con un `PodMonitor/ServiceMonitor` opcional).
+> With this: your app will send **metrics/traces** via **OTLP** to the Collector. The Collector **exposes /metrics (8889)** and **Prometheus** will scrape it (auto‑discovered by Prometheus Operator if ServiceMonitor is enabled; in this minimal setup you can also scrape the Collector Service with an optional PodMonitor/ServiceMonitor).
 
 ---
 
-## 6) Crea la API .NET (Aspire‑ready) con OpenTelemetry
+## 6) Create the .NET API (Aspire‑ready) with OpenTelemetry
 
 ```bash
 mkdir demo-aspire && cd demo-aspire
 dotnet new webapi -n Demo.Api
 cd Demo.Api
 
-# Paquetes base de OpenTelemetry (versiones actualizadas)
+# Base OpenTelemetry packages (updated versions)
 dotnet add package OpenTelemetry.Extensions.Hosting --version 1.9.0
 dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol --version 1.9.0
 dotnet add package OpenTelemetry.Instrumentation.AspNetCore --version 1.9.0
 dotnet add package OpenTelemetry.Instrumentation.Http --version 1.9.0
 dotnet add package OpenTelemetry.Instrumentation.Runtime --version 1.9.0
 
-# Paquetes adicionales para Aspire-ready
+# Additional packages for Aspire-ready
 dotnet add package Microsoft.Extensions.ServiceDiscovery --version 9.0.0
 dotnet add package Microsoft.Extensions.Http.Resilience --version 9.0.0
 ```
 
-`Program.cs` (mínimo con OTLP a Collector):
+`Program.cs` (minimal with OTLP to Collector):
 
 ```csharp
 using OpenTelemetry.Metrics;
@@ -234,7 +234,7 @@ var serviceVersion = "1.0.0";
 var otlp = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
            ?? "http://otel-opentelemetry-collector.observability.svc.cluster.local:4317";
 
-// ActivitySource para custom traces
+// ActivitySource for custom traces
 var activitySource = new ActivitySource(serviceName);
 
 builder.Services.AddOpenTelemetry()
@@ -319,27 +319,27 @@ EXPOSE 8080
 ENTRYPOINT ["dotnet", "Demo.Api.dll"]
 ```
 
-> **📍 Importante:** El `Dockerfile` se crea en el directorio `demo-aspire/Demo.Api/` (mismo directorio donde está el archivo `.csproj`).
+> 📍 Important: The `Dockerfile` is created in `demo-aspire/Demo.Api/` (the same directory as the `.csproj` file).
 
-Construye la imagen **dentro de Minikube** (recuerda el `docker-env` del paso 3):
+Build the image **inside Minikube** (remember the `docker-env` from step 3):
 ```powershell
-# Configurar docker-env (si no lo hiciste antes)
+# Configure docker-env (if you haven't done it)
 & minikube -p demo docker-env | Invoke-Expression
 
-# Construir la imagen
+# Build the image
 docker build -t demo-api:0.1 .
 
-# Verificar que la imagen está en Minikube
+# Verify the image is in Minikube
 docker images | findstr demo-api
 ```
 
 ---
 
-## 7) Despliega la app en Kubernetes
+## 7) Deploy the app to Kubernetes
 
-> **⚠️ Importante:** Recuerda usar siempre el perfil `-p demo` en todos los comandos de minikube.
+> ⚠️ Important: Always use the profile `-p demo` with all minikube commands.
 
-Crea `demo-api.yaml`:
+Create `demo-api.yaml`:
 
 ```yaml
 apiVersion: apps/v1
@@ -406,31 +406,30 @@ spec:
   type: NodePort
 ```
 
-Crea el namespace y aplica el deployment:
+Create the namespace and apply the deployment:
 ```powershell
-# Crear el namespace
+# Create the namespace
 kubectl create namespace apps
 
-# Aplicar el deployment
+# Apply the deployment
 kubectl apply -f demo-api.yaml
 
-# Exponer el servicio
+# Expose the service
 minikube -p demo service demo-api --url -n apps
 ```
 
-Prueba el endpoint:
+Test the endpoint:
 ```powershell
-# Usar la URL que devuelve el comando anterior
-curl <URL_que_devuelve_minikube>/ping
+# Use the URL returned by the previous command
+curl <URL_returned_by_minikube>/ping
 
-# O verificar el pod directamente
+# Or check the pod directly
 kubectl get pods -n apps
 kubectl logs -n apps deployment/demo-api
 ```
 
 ---
 
+## 🎬 Now we can start the visual demo!
 
-## 🎬 ¡Ahora podemos empezar la demo visual!
-
-👉 **[Ir al a la Demo →](./demo.md)**
+👉 **[Go to the Demo →](./demo.md)**
