@@ -291,6 +291,8 @@ app.MapGet("/ping", () =>
 app.Run();
 ```
 
+> 📍 Important: The next `Dockerfile` is created in `demo-aspire/Demo.Api/` (the same directory as the `.csproj` file).
+
 `Dockerfile`:
 ```dockerfile
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
@@ -323,8 +325,6 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Demo.Api.dll"]
 ```
-
-> 📍 Important: The `Dockerfile` is created in `demo-aspire/Demo.Api/` (the same directory as the `.csproj` file).
 
 Build the image **inside Minikube** (remember the `docker-env` from step 3):
 ```powershell
