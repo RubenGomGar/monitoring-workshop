@@ -98,6 +98,8 @@ kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}
 kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
 ```
 
+> An alternative way to get this secret would be going to the Kubernetes Dashboard, navigate to Secrets -> kps-grafana -> admin-password (👁️)
+
 > Note: kube‑prometheus‑stack already configures Prometheus Operator, Alertmanager and Grafana with default Kubernetes dashboards.
 
 ---
@@ -184,8 +186,11 @@ config:
 Install the Collector:
 ```bash
 kubectl create ns observability
+
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+
 helm repo update
+
 helm install otel open-telemetry/opentelemetry-collector -n observability -f otel-values.yaml
 ```
 
