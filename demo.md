@@ -1,268 +1,268 @@
-# 🎬 Demo Visual: Observabilidad en Acción
+# 🎬 Visual Demo: Observability in Action
 
-¡Es hora de ver la magia! Con todo el stack montado, ahora podemos hacer una **demo visual completa** que muestra cómo la observabilidad funciona en tiempo real. 
+Time to see the magic! With the entire stack deployed, we can now do a **complete visual demo** that shows how observability works in real-time.
 
-**🎯 Lo que vamos a demostrar:**
-- ✅ **Pipeline completo funcionando**: API → OpenTelemetry → Collector → Prometheus → Grafana
-- ✅ **Métricas en tiempo real**: Viendo cómo cada request genera datos instantáneos
-- ✅ **Dashboards interactivos**: Consultando y visualizando el comportamiento de la aplicación
-- ✅ **Troubleshooting en vivo**: Identificando cuellos de botella y patrones de uso
+**🎯 What we're going to demonstrate:**
+- ✅ **Complete pipeline working**: API → OpenTelemetry → Collector → Prometheus → Grafana
+- ✅ **Real-time metrics**: Seeing how each request generates instant data
+- ✅ **Interactive dashboards**: Querying and visualizing application behavior
+- ✅ **Live troubleshooting**: Identifying bottlenecks and usage patterns
 
-**🔄 Flujo de la demo:**
-1. **Verificar métricas del Collector** - Confirmar que llegan datos
-2. **Generar tráfico real** - Hacer requests a la API 
-3. **Consultar en Prometheus** - Ver métricas actualizándose en tiempo real
-4. **Visualizar en Grafana** - Crear dashboards y gráficos
+**🔄 Demo flow:**
+1. **Verify Collector metrics** - Confirm data is arriving
+2. **Generate real traffic** - Make requests to the API
+3. **Query in Prometheus** - See metrics updating in real-time
+4. **Visualize in Grafana** - Create dashboards and graphs
 
 ---
 
-## 8) Verificar que el OpenTelemetry Collector funciona
+## 8) Verify that the OpenTelemetry Collector works
 
-> **⚠️ Nota importante**: Si el ServiceMonitor no funciona inmediatamente, puede que necesites aplicar el patch del puerto como se explica en la sección de troubleshooting.
+> **⚠️ Important note**: If the ServiceMonitor doesn't work immediately, you may need to apply the port patch as explained in the troubleshooting section.
 
-### 8.1) Primero: Verificar métricas directamente del Collector
+### 8.1) First: Verify metrics directly from the Collector
 
 ```powershell
-# Port-forward para acceder a las métricas del Collector
+# Port-forward to access Collector metrics
 kubectl port-forward -n observability svc/otel-opentelemetry-collector 8889:8889
 ```
 
-Abre tu navegador en: http://localhost:8889/metrics
+Open your browser at: http://localhost:8889/metrics
 
-**¿Qué deberías ver?**
+**What should you see?**
 
-**1. Métrica más importante - Target de tu aplicación:**
+**1. Most important metric - Your application target:**
 ```
 target_info{deployment_environment="Development",instance="demo-api-6b8b488594-q59nl",job="1.0.0/demo-api",telemetry_sdk_language="dotnet",telemetry_sdk_name="opentelemetry",telemetry_sdk_version="1.9.0"} 1
 ```
-Esta línea confirma que OpenTelemetry está recibiendo métricas de tu API .NET.
+This line confirms that OpenTelemetry is receiving metrics from your .NET API.
 
-**2. Otras métricas importantes:**
-- `up{job="otel-opentelemetry-collector"}` - Estado del Collector (debe ser 1)
-- `aspnetcore_routing_match_attempts_total` - Requests de ASP.NET Core
-- `http_client_active_requests` - Requests HTTP activos
-- `otelcol_receiver_accepted_spans_total` - Spans recibidos por el Collector
+**2. Other important metrics:**
+- `up{job="otel-opentelemetry-collector"}` - Collector status (should be 1)
+- `aspnetcore_routing_match_attempts_total` - ASP.NET Core requests
+- `http_client_active_requests` - Active HTTP requests
+- `otelcol_receiver_accepted_spans_total` - Spans received by the Collector
 
-💡 **Tip:** Usa Ctrl+F para buscar `target_info` - es la métrica clave que confirma la conexión.
+💡 **Tip:** Use Ctrl+F to search for `target_info` - it's the key metric that confirms the connection.
 
-### 8.2) Generar tráfico en tu aplicación
+### 8.2) Generate traffic in your application
 
 ```powershell
-# Obtén la URL de tu app
+# Get your app URL
 minikube -p demo service demo-api --url -n apps
 
-# Genera algo de tráfico (ejecuta varias veces)
+# Generate some traffic (run several times)
 curl <URL>/ping
 curl <URL>/ping
 curl <URL>/ping
 ```
 
-**Refresca http://localhost:8889/metrics** - ahora deberías ver más métricas de tu app.
+**Refresh http://localhost:8889/metrics** - you should now see more metrics from your app.
 
-### 8.3) Verificar en Prometheus
+### 8.3) Verify in Prometheus
 
 ```powershell
-# Port-forward a Prometheus (nueva terminal)
+# Port-forward to Prometheus (new terminal)
 kubectl port-forward -n monitoring svc/kps-kube-prometheus-stack-prometheus 9090:9090
 ```
 
-Abre: http://localhost:9090
+Open: http://localhost:9090
 
-**Paso a paso en la UI de Prometheus:**
+**Step by step in the Prometheus UI:**
 
-#### Query 1: ¿Está el Collector activo?
-- En la caja de búsqueda, escribe: `up{job="otel-opentelemetry-collector"}`
+#### Query 1: Is the Collector active?
+- In the search box, type: `up{job="otel-opentelemetry-collector"}`
 - Click **Execute**
-- **Deberías ver**: `up{...} 1` (significa que está UP/activo)
-- **Si ves 0 o no aparece**: El ServiceMonitor no está funcionando
+- **You should see**: `up{...} 1` (means it's UP/active)
+- **If you see 0 or nothing appears**: The ServiceMonitor is not working
 
-#### Query 2: ✅ ¿Llegan métricas de tu aplicación .NET?
-- Escribe: `aspnetcore_routing_match_attempts_total`
+#### Query 2: ✅ Are metrics arriving from your .NET application?
+- Type: `aspnetcore_routing_match_attempts_total`
 - Click **Execute**
-- **Deberías ver**: Métricas con `exported_job="1.0.0/demo-api"` y rutas como `/health`, `/ping`
-- **Si no aparece**: Tu app no está enviando métricas
+- **You should see**: Metrics with `exported_job="1.0.0/demo-api"` and routes like `/health`, `/ping`
+- **If nothing appears**: Your app is not sending metrics
 
-#### Query 3: 🎯 ¿Funciona la conexión completa App → Collector?
-- Escribe: `target_info{telemetry_sdk_language="dotnet"}`
+#### Query 3: 🎯 Does the complete App → Collector connection work?
+- Type: `target_info{telemetry_sdk_language="dotnet"}`
 - Click **Execute**
-- **Deberías ver**: La métrica con `deployment_environment="Development"` y `telemetry_sdk_name="opentelemetry"`
-- **Esta es la métrica MÁS importante** - confirma que OpenTelemetry recoge datos de tu API
+- **You should see**: The metric with `deployment_environment="Development"` and `telemetry_sdk_name="opentelemetry"`
+- **This is the MOST important metric** - confirms that OpenTelemetry is collecting data from your API
 
-#### Query 4: 📊 ¿Se registran requests HTTP?
-- Escribe: `http_server_request_duration_seconds_count`
+#### Query 4: 📊 Are HTTP requests being recorded?
+- Type: `http_server_request_duration_seconds_count`
 - Click **Execute**
-- **Deberías ver**: Contadores de requests HTTP con rutas como `/health` y `/ping`
-- **Incluye métricas detalladas**: Códigos de respuesta, duración, etc.
+- **You should see**: HTTP request counters with routes like `/health` and `/ping`
+- **Includes detailed metrics**: Response codes, duration, etc.
 
-#### Query 5: Ver todas las métricas disponibles
-- Escribe: `{job="otel-opentelemetry-collector"}`
+#### Query 5: See all available metrics
+- Type: `{job="otel-opentelemetry-collector"}`
 - Click **Execute**
-- **Deberías ver**: Una lista de TODAS las métricas que vienen del Collector (incluyendo métricas del runtime de .NET como `process_runtime_dotnet_*`)
+- **You should see**: A list of ALL metrics coming from the Collector (including .NET runtime metrics like `process_runtime_dotnet_*`)
 
-> **💡 Tip**: Si alguna query no devuelve resultados, ve a **Status → Targets** en Prometheus para ver si el Collector aparece como target.
+> **💡 Tip**: If any query returns no results, go to **Status → Targets** in Prometheus to see if the Collector appears as a target.
 
-#### 🔧 Troubleshooting de las consultas:
+#### 🔧 Query troubleshooting:
 
-**Si `up{job="otel-opentelemetry-collector"}` no funciona:**
+**If `up{job="otel-opentelemetry-collector"}` doesn't work:**
 ```powershell
-# Verificar que el ServiceMonitor existe y tiene el label correcto
+# Verify that the ServiceMonitor exists and has the correct label
 kubectl get servicemonitor -n observability --show-labels
 
-# Verificar que el ServiceMonitor apunta al puerto correcto
+# Verify that the ServiceMonitor points to the correct port
 kubectl get servicemonitor -n observability otel-opentelemetry-collector -o yaml
 
-# Si necesario, patchear el ServiceMonitor para usar el puerto correcto
+# If necessary, patch the ServiceMonitor to use the correct port
 kubectl patch servicemonitor -n observability otel-opentelemetry-collector --type='json' -p='[{"op": "replace", "path": "/spec/endpoints/0/port", "value": "prom-exporter"}]'
 ```
 
-**Si no ves métricas de tu app:**
+**If you don't see metrics from your app:**
 ```powershell
-# Verificar logs del Collector
+# Check Collector logs
 kubectl logs -n observability deployment/otel-opentelemetry-collector
 
-# Verificar logs de tu app
+# Check your app logs
 kubectl logs -n apps deployment/demo-api
 
-# Verificar conectividad
+# Check connectivity
 kubectl exec -n apps deployment/demo-api -- nslookup otel-opentelemetry-collector.observability.svc.cluster.local
 ```
 
-**Si Prometheus no encuentra el Collector como target:**
-- Ve a http://localhost:9090/targets
-- Busca `otel-opentelemetry-collector`
-- Si aparece en rojo/down: problema de red o configuración
-- Si no aparece: problema con el ServiceMonitor
+**If Prometheus doesn't find the Collector as a target:**
+- Go to http://localhost:9090/targets
+- Search for `otel-opentelemetry-collector`
+- If it appears in red/down: network or configuration problem
+- If it doesn't appear: problem with the ServiceMonitor
 
-**Solución aplicada - Configuración correcta del ServiceMonitor:**
+**Applied solution - Correct ServiceMonitor configuration:**
 ```powershell
-# El problema común: ServiceMonitor busca puerto 'metrics' pero el Service usa 'prom-exporter'
-# Solución: Patchear el ServiceMonitor para usar el puerto correcto
+# Common problem: ServiceMonitor looks for port 'metrics' but the Service uses 'prom-exporter'
+# Solution: Patch the ServiceMonitor to use the correct port
 kubectl patch servicemonitor -n observability otel-opentelemetry-collector --type='json' -p='[{"op": "replace", "path": "/spec/endpoints/0/port", "value": "prom-exporter"}]'
 
-# Reiniciar Prometheus si es necesario
+# Restart Prometheus if necessary
 kubectl delete pod -n monitoring prometheus-kps-kube-prometheus-stack-prometheus-0
 
-# Verificar que funciona
+# Verify it works
 kubectl port-forward -n monitoring svc/kps-kube-prometheus-stack-prometheus 9090:9090
-# Luego probar: up{job="otel-opentelemetry-collector"}
+# Then test: up{job="otel-opentelemetry-collector"}
 ```
 
-### 8.4) Finalmente: Ver en Grafana
+### 8.4) Finally: View in Grafana
 
 ```powershell
-# Obtener URL de Grafana
+# Get Grafana URL
 minikube -p demo service -n monitoring kps-grafana --url
 
-# Obtener password
+# Get password
 kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
 ```
 
-**En Grafana:**
-1. Ve a **Explore**
-2. Selecciona **Prometheus** como data source
-3. Prueba estas consultas:
+**In Grafana:**
+1. Go to **Explore**
+2. Select **Prometheus** as data source
+3. Try these queries:
 
 ```promql
-# Tráfico de tu aplicación (métricas .NET)
+# Your application traffic (.NET metrics)
 rate(aspnetcore_routing_match_attempts_total[5m])
 
-# Estado del Collector
+# Collector status
 up{job="otel-opentelemetry-collector"}
 
-# Requests por endpoint específico
+# Requests by specific endpoint
 aspnetcore_routing_match_attempts_total{http_route="/ping"}
 ```
 
-### 8.5) Crear un dashboard simple
+### 8.5) Create a simple dashboard
 
-En Grafana, crea un **New Dashboard** con estos paneles:
+In Grafana, create a **New Dashboard** with these panels:
 
 1. **Panel 1 - Collector Health**:
    - Query: `up{job="otel-opentelemetry-collector"}`
    - Visualization: Stat
 
-2. **Panel 2 - Request Rate por Endpoint**:
+2. **Panel 2 - Request Rate by Endpoint**:
    - Query: `rate(aspnetcore_routing_match_attempts_total[5m])`
    - Visualization: Time series
 
-3. **Panel 3 - Requests al endpoint /ping**:
+3. **Panel 3 - Requests to /ping endpoint**:
    - Query: `aspnetcore_routing_match_attempts_total{http_route="/ping"}`
    - Visualization: Stat
 
 ---
 
-## 9) (Opcional) Añadir logs (Loki) y trazas (Tempo)
+## 9) (Optional) Add logs (Loki) and traces (Tempo)
 
-Para extender:
-- Despliega **Loki** (`grafana/loki-stack`) y **Tempo** (`grafana/tempo` o `tempo-distributed`).
-- En el Collector, añade exporters `loki` (HTTP push `/loki/api/v1/push`) y `otlp` hacia Tempo (`:4317`).
-- En Grafana, añade datasources **Loki** y **Tempo** y explora logs/trazas.
+To extend:
+- Deploy **Loki** (`grafana/loki-stack`) and **Tempo** (`grafana/tempo` or `tempo-distributed`).
+- In the Collector, add `loki` exporters (HTTP push `/loki/api/v1/push`) and `otlp` to Tempo (`:4317`).
+- In Grafana, add **Loki** and **Tempo** datasources and explore logs/traces.
 
 ---
 
-## 10) Troubleshooting rápido
+## 10) Quick troubleshooting
 
-### Problemas con Minikube:
-- **Error "Profile not found"**: Siempre usa `-p demo` en comandos minikube
+### Minikube issues:
+- **Error "Profile not found"**: Always use `-p demo` in minikube commands
   ```powershell
-  # ❌ Incorrecto: minikube service demo-api --url -n apps
-  # ✅ Correcto:   minikube -p demo service demo-api --url -n apps
+  # ❌ Incorrect: minikube service demo-api --url -n apps
+  # ✅ Correct:   minikube -p demo service demo-api --url -n apps
   ```
-- **`kubectl get nodes` no responde**: 
+- **`kubectl get nodes` doesn't respond**: 
   ```powershell
   minikube status -p demo
-  # Si necesario: minikube delete -p demo && minikube start -p demo --driver=docker
+  # If necessary: minikube delete -p demo && minikube start -p demo --driver=docker
   ```
 
-### Problemas con imágenes:
+### Image issues:
 - **`ImagePullBackOff`**: 
   ```powershell
-  # Configurar docker-env ANTES de construir
+  # Configure docker-env BEFORE building
   & minikube -p demo docker-env | Invoke-Expression
   docker build -t demo-api:0.1 .
-  # Verificar: docker images | findstr demo-api
+  # Verify: docker images | findstr demo-api
   ```
 
-### Problemas con servicios:
-- **Grafana no abre**: 
+### Service issues:
+- **Grafana won't open**: 
   ```powershell
   minikube service -n monitoring kps-grafana --url -p demo
   ```
-- **Password de Grafana**:
+- **Grafana password**:
   ```powershell
   kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
   ```
 
-### Problemas con OpenTelemetry:
-- **No hay métricas de la app**: 
+### OpenTelemetry issues:
+- **No app metrics**: 
   ```powershell
-  # Verificar el Collector
+  # Check the Collector
   kubectl -n observability get pods
   kubectl -n observability logs deploy/otel-opentelemetry-collector
   
-  # Verificar la app
+  # Check the app
   kubectl logs deploy/demo-api -n apps
   
-  # Verificar conectividad
+  # Check connectivity
   kubectl -n observability get svc
   ```
 
-### Comandos útiles de diagnóstico:
+### Useful diagnostic commands:
 ```powershell
-# Estado general del cluster
+# General cluster status
 kubectl get all --all-namespaces
 
-# Eventos del cluster
+# Cluster events
 kubectl get events --sort-by=.metadata.creationTimestamp
 
-# Verificar métricas del Collector
+# Verify Collector metrics
 kubectl port-forward -n observability svc/otel-opentelemetry-collector 8889:8889
-# Luego visita: http://localhost:8889/metrics
+# Then visit: http://localhost:8889/metrics
 ```
 
 ---
 
-## Resultado final
+## Final result
 
 ```
 Docker Host
@@ -272,4 +272,4 @@ Docker Host
     └── Demo.Api (.NET Aspire‑ready)
 ```
 
-Stack mínimo, reproducible y listo para demos **cloud‑agnostic** 🎯
+Minimal, reproducible stack ready for **cloud-agnostic** demos 🎯

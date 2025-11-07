@@ -1,48 +1,48 @@
-# 🔍 Workshop: Observabilidad Local - De Zero a Hero
+# 🔍 Workshop: Local Observability - From Zero to Hero
 
-## 💡 ¿Por qué Observabilidad?
+## 💡 Why Observability?
 
-En el mundo moderno de microservicios y aplicaciones distribuidas, **no basta con saber que algo se rompió**. Necesitamos saber:
-- 🔍 **¿Qué se rompió exactamente?**
-- ⏱️ **¿Cuándo empezó el problema?** 
-- 🎯 **¿Dónde está el cuello de botella?**
-- 📊 **¿Cómo afecta a los usuarios?**
+In the modern world of microservices and distributed applications, **it's not enough to know that something broke**. We need to know:
+- 🔍 **What exactly broke?**
+- ⏱️ **When did the problem start?** 
+- 🎯 **Where is the bottleneck?**
+- 📊 **How does it affect users?**
 
-La observabilidad nos da **visibilidad total** del comportamiento interno de nuestras aplicaciones a través de **métricas**, **logs** y **trazas**.
+Observability gives us **complete visibility** into the internal behavior of our applications through **metrics**, **logs**, and **traces**.
 
-## 🚀 Hands-on: Stack Completo en 30 minutos
+## 🚀 Hands-on: Complete Stack in 30 minutes
 
-En este workshop montaremos **desde cero** un stack completo de observabilidad:
+In this workshop we'll build **from scratch** a complete observability stack:
 
 ```
 🏗️ Stack: Minikube + OpenTelemetry + Prometheus + Grafana + .NET 9
-🎯 Objetivo: Monitorear una API real con métricas en tiempo real
-⏱️ Tiempo: ~30 minutos  
-🌐 Alcance: 100% local, sin dependencias externas
+🎯 Goal: Monitor a real API with real-time metrics
+⏱️ Time: ~30 minutes  
+🌐 Scope: 100% local, no external dependencies
 ```
 
-**Lo que aprenderás:**
-- ✅ Configurar OpenTelemetry en .NET 9
-- ✅ Desplegar Prometheus + Grafana con Helm
-- ✅ Crear pipelines de métricas OTLP → Collector → Prometheus
-- ✅ Visualizar métricas reales de tu aplicación
-- ✅ Troubleshooting de configuraciones
+**What you'll learn:**
+- ✅ Configure OpenTelemetry in .NET 9
+- ✅ Deploy Prometheus + Grafana with Helm
+- ✅ Create OTLP → Collector → Prometheus metrics pipelines
+- ✅ Visualize real metrics from your application
+- ✅ Configuration troubleshooting
 
 ---
 
-## 🎬 ¡Empezar Ahora!
+## 🎬 Start Now!
 
-👉 **[Ir al Workshop Completo →](./setup.md)**
+👉 **[Go to Complete Workshop →](./setup.md)**
 
 ---
 
-## 🏗️ Arquitectura del Stack
+## 🏗️ Stack Architecture
 
-### Diagrama de Flujo Visual
+### Visual Flow Diagram
 
 ```mermaid
 graph TB
-    %% Estilo de los nodos
+    %% Node styles
     classDef k8s fill:#326CE5,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef app fill:#68217A,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef otel fill:#F5A623,stroke:#ffffff,stroke-width:2px,color:#ffffff
@@ -51,7 +51,7 @@ graph TB
     classDef docker fill:#0db7ed,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef user fill:#28a745,stroke:#ffffff,stroke-width:2px,color:#ffffff
 
-    %% Docker y Minikube
+    %% Docker and Minikube
     subgraph "💻 Local Machine"
         Docker["🐳 Docker Desktop"]
         
@@ -73,15 +73,15 @@ graph TB
         end
     end
     
-    %% Usuario
-    User["👤 Usuario\n🌐 Browser"]
+    %% User
+    User["👤 User\n🌐 Browser"]
     
-    %% Conexiones principales
+    %% Main connections
     User -->|":3000 📈 Dashboard"| Grafana
     User -->|":9090 🔍 Queries"| Prometheus
     User -->|"curl /ping 🏃"| DemoAPI
     
-    %% Flujo de datos
+    %% Data flow
     DemoAPI -->|"OTLP gRPC :4317\n📊 Metrics + Traces"| OTelCollector
     OTelCollector -->|"HTTP :8889\n📈 /metrics endpoint"| Prometheus
     Prometheus -->|"PromQL Queries\n📊 Data Source"| Grafana
@@ -93,7 +93,7 @@ graph TB
     %% Docker relationship
     Docker -->|"🏗️ Container Runtime"| Minikube
     
-    %% Aplicar estilos
+    %% Apply styles
     class Docker,Minikube docker
     class DemoAPI app
     class OTelCollector otel
@@ -102,46 +102,46 @@ graph TB
     class User user
 ```
 
-## 📋 Componentes y Puertos
+## 📋 Components and Ports
 
-| Componente | Namespace | Puerto | Función |
+| Component | Namespace | Port | Function |
 |------------|-----------|---------|---------|
-| 🚀 Demo API | `apps` | `8080` | Aplicación .NET con OpenTelemetry |
-| 📡 OpenTelemetry Collector | `observability` | `4317` (OTLP), `8889` (metrics) | Recibe OTLP → Expone métricas |
-| 🔍 Prometheus | `monitoring` | `9090` | Almacena y consulta métricas |
-| 📈 Grafana | `monitoring` | `3000` | Dashboards y visualización |
+| 🚀 Demo API | `apps` | `8080` | .NET application with OpenTelemetry |
+| 📡 OpenTelemetry Collector | `observability` | `4317` (OTLP), `8889` (metrics) | Receives OTLP → Exposes metrics |
+| 🔍 Prometheus | `monitoring` | `9090` | Stores and queries metrics |
+| 📈 Grafana | `monitoring` | `3000` | Dashboards and visualization |
 
-## 🔄 Flujo de Datos
+## 🔄 Data Flow
 
 ```mermaid
 sequenceDiagram
-    participant User as 👤 Usuario
+    participant User as 👤 User
     participant API as 🚀 Demo API
     participant OTEL as 📡 OTel Collector
     participant PROM as 🔍 Prometheus
     participant GRAF as 📈 Grafana
 
     User->>API: GET /ping
-    API-->>API: 📊 Genera métricas OpenTelemetry
-    API->>OTEL: OTLP gRPC (métricas + trazas)
-    OTEL-->>OTEL: 🔄 Procesa y transforma
-    PROM->>OTEL: HTTP GET /metrics (scrape cada 30s)
-    OTEL->>PROM: 📈 Métricas en formato Prometheus
-    User->>GRAF: 🌐 Accede al dashboard
+    API-->>API: 📊 Generate OpenTelemetry metrics
+    API->>OTEL: OTLP gRPC (metrics + traces)
+    OTEL-->>OTEL: 🔄 Process and transform
+    PROM->>OTEL: HTTP GET /metrics (scrape every 30s)
+    OTEL->>PROM: 📈 Metrics in Prometheus format
+    User->>GRAF: 🌐 Access dashboard
     GRAF->>PROM: PromQL query
-    PROM->>GRAF: 📊 Datos de métricas
-    GRAF->>User: 📈 Visualización
+    PROM->>GRAF: 📊 Metrics data
+    GRAF->>User: 📈 Visualization
 ```
 
-## 🎯 Métricas Clave Monitoreadas
+## 🎯 Key Monitored Metrics
 
 ```mermaid
 graph TD
-    Root["📊 Métricas Clave"]
+    Root["📊 Key Metrics"]
     
     Root --> TargetInfo["🎯 Target Info"]
     Root --> HTTPReq["🌐 HTTP Requests"] 
-    Root --> Runtime["🔧 Runtime .NET"]
+    Root --> Runtime["🔧 .NET Runtime"]
     Root --> Collector["⚙️ Collector Status"]
     
     TargetInfo --> T1["deployment_environment"]
@@ -159,7 +159,7 @@ graph TD
     Collector --> C1["otel_collector_up"]
     Collector --> C2["scrape_duration_seconds"]
 
-    %% Estilos
+    %% Styles
     classDef rootNode fill:#E6522C,stroke:#ffffff,stroke-width:3px,color:#ffffff
     classDef categoryNode fill:#326CE5,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef metricNode fill:#68217A,stroke:#ffffff,stroke-width:1px,color:#ffffff
@@ -169,7 +169,7 @@ graph TD
     class T1,T2,T3,H1,H2,H3,R1,R2,R3,C1,C2 metricNode
 ```
 
-## 🚀 Stack Tecnológico
+## 🚀 Technology Stack
 
 ```mermaid
 graph LR
@@ -194,7 +194,7 @@ graph LR
     C --> F
     J --> D
 
-    %% Estilos
+    %% Styles
     classDef infra fill:#0db7ed,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef obs fill:#E6522C,stroke:#ffffff,stroke-width:2px,color:#ffffff
     classDef app fill:#68217A,stroke:#ffffff,stroke-width:2px,color:#ffffff
@@ -206,6 +206,6 @@ graph LR
 
 ---
 
-> 🎉 **¡Arquitectura 100% local y cloud-agnostic!** 
+> 🎉 **100% local and cloud-agnostic architecture!** 
 > 
-> Todo corre en tu máquina con Minikube + Docker, sin dependencias externas ni registries remotos.
+> Everything runs on your machine with Minikube + Docker, with no external dependencies or remote registries.
