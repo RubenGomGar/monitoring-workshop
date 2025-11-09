@@ -34,6 +34,8 @@ choco install minikube -y
 
 ```bash
 minikube start -p demo --driver=docker
+# minikube start -p demo --driver=docker --cni=calico // For the security demo
+
 kubectl get nodes
 
 minikube -p demo dashboard
