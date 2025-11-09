@@ -22,6 +22,7 @@ Complete workshop to implement observability in .NET applications using a modern
 - **[🏗️ Architecture & Overview](./architecture-diagram.md)** - Diagrams and explanation of the stack
 - **[🔧 Full Setup](./setup.md)** - Step-by-step guide to set up the entire environment
 - **[🎬 Visual Demo](./demo.md)** - Hands-on demo with real-time metrics
+- **[🔐 Security Notes](./security.md)** - Key steps to improve the security of our cluster and Docker images
 
 ## 🚀 Quick Start
 
