@@ -60,83 +60,16 @@ Trivy will output a table with:
 - ✅ **Fixed Version**: Version that patches the vulnerability
 
 
-## 2) 🛡️ Network Policies: Pod Firewall
+## 2) 👤 Run Containers as Non-Root
 
-### 2.1) Understanding the Problem
-
-By default, **all pods in Kubernetes can communicate with each other**. This is a security risk!
-
-**Let's demonstrate this:**
-
-```bash
-# Deploy a test pod with network tools
-kubectl run infiltrated --image=nicolaka/netshoot -n monitoring -- sleep infinity
-
-# Access the pod
-kubectl exec -n monitoring -it infiltrated -- bash
-
-# Inside the pod, scan the cluster
-nmap -sn -v 10.244.0.0/24
-
-# You'll see ALL pods responding!
-```
-
-### 2.2) Deploy a Network Policy
-
-First test that you have open communications.
-
-```bash
-kubectl exec -n monitoring -it infiltrated -- bash
-curl <IP-api-demo>:8080/health
-# Should return healthy
-```
-
-Now create `deny-all-policy.yaml`:
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: deny-all
-  namespace: apps
-spec:
-  podSelector:
-    matchLabels:
-      app: demo-api
-  policyTypes:
-  - Ingress
-  - Egress
-  ingress: []  # Deny all ingress
-  egress: []   # Deny all egress
-```
-
-Apply the policy:
-```bash
-kubectl apply -f deny-all-policy.yaml
-
-# Verify it exists
-kubectl get networkpolicy -n apps
-```
-
-Test again if you are able to communicate:
-```bash
-kubectl exec -n monitoring -it infiltrated -- bash
-curl <IP-api-demo>:8080/health
-# Should not respond
-```
-
----
-
-## 3) 👤 Run Containers as Non-Root
-
-### 3.1) Why Non-Root Matters
+### 2.1) Why Non-Root Matters
 
 Running containers as root is dangerous:
 - 🚨 **Container escape** = root on the host
 - 💥 **File system access** without restrictions
 - 🔓 **Privilege escalation** vulnerabilities
 
-### 3.2) A Bad Dockerfile
+### 2.2) A Bad Dockerfile
 
 **Dockerfile-bad (❌ insecure):**
 ```dockerfile
@@ -176,7 +109,7 @@ Name the previous file as Dockerfile.bad and build the image:
 docker build -f Dockerfile.bad -t demo-root:local .
 ```
 
-### 3.3) Detect it with Trivy
+### 2.3) Detect it with Trivy
 
 Run this command to check for misconfigurations
 
@@ -184,7 +117,7 @@ Run this command to check for misconfigurations
 trivy image --scanners misconfig --image-config-scanners misconfig  demo-root:local
 ```
 
-### 3.4) In Kubernetes if we try to run the root container with restricted policies...
+### 2.4) In Kubernetes if we try to run the root container with restricted policies...
 
 Update `demo-api.yaml`:
 
@@ -263,6 +196,74 @@ kubectl apply -f demo-api-root.yaml
 ```
 
 What are you experiencing? Try entering the pod with a console.
+
+
+## 3) 🛡️ Network Policies: Pod Firewall
+
+### 3.1) Understanding the Problem
+
+By default, **all pods in Kubernetes can communicate with each other**. This is a security risk!
+
+**Let's demonstrate this:**
+
+```bash
+# Deploy a test pod with network tools
+kubectl run infiltrated --image=nicolaka/netshoot -n monitoring -- sleep infinity
+
+# Access the pod
+kubectl exec -n monitoring -it infiltrated -- bash
+
+# Inside the pod, scan the cluster
+nmap -sn -v 10.244.0.0/24
+
+# You'll see ALL pods responding!
+```
+
+### 3.2) Deploy a Network Policy
+
+First test that you have open communications.
+
+```bash
+kubectl exec -n monitoring -it infiltrated -- bash
+curl <IP-api-demo>:8080/health
+# Should return healthy
+```
+
+Now create `deny-all-policy.yaml`:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+  namespace: apps
+spec:
+  podSelector:
+    matchLabels:
+      app: demo-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress: []  # Deny all ingress
+  egress: []   # Deny all egress
+```
+
+Apply the policy:
+```bash
+kubectl apply -f deny-all-policy.yaml
+
+# Verify it exists
+kubectl get networkpolicy -n apps
+```
+
+Test again if you are able to communicate:
+```bash
+kubectl exec -n monitoring -it infiltrated -- bash
+curl <IP-api-demo>:8080/health
+# Should not respond
+```
+
+---
 
 ## 4) 🎯 RBAC: Least Privilege Access
 
