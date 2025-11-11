@@ -104,7 +104,125 @@ kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}
 
 ---
 
-## 5) Install OpenTelemetry Collector (minimal gateway)
+## 5) Install Grafana Tempo (for traces)
+
+Create `tempo-values.yaml`:
+
+```yaml
+tempo:
+  reportingEnabled: false
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://kps-kube-prometheus-st-prometheus.monitoring:9090/api/v1/write"
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: kps
+
+# Optimized resources for demo
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+```
+
+Install Tempo:
+```bash
+kubectl create ns observability
+
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+helm install tempo grafana/tempo -n observability -f tempo-values.yaml
+```
+
+Verify Tempo is ready:
+```bash
+kubectl -n observability get pods | findstr tempo
+```
+
+---
+
+## 6) Install Grafana Loki (for logs)
+
+Create `loki-values.yaml`:
+
+```yaml
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: 'filesystem'
+  
+  # Required schema configuration
+  schemaConfig:
+    configs:
+      - from: 2024-01-01
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Disable unnecessary components for local demo
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+
+# Use single binary mode
+deploymentMode: SingleBinary
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kps
+
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+```
+
+Install Loki:
+```bash
+helm install loki grafana/loki -n observability -f loki-values.yaml
+```
+
+Verify Loki is ready:
+```bash
+kubectl -n observability get pods | findstr loki
+```
+
+---
+
+## 7) Install OpenTelemetry Collector (gateway for metrics, traces & logs)
 
 Create `otel-values.yaml` with this content:
 
@@ -136,7 +254,7 @@ resources:
     cpu: "100m"
     memory: "128Mi"
 
-# We only expose the Prometheus exporter metrics port
+# We expose the Prometheus exporter metrics port
 ports:
   prom-exporter:
     enabled: true
@@ -146,7 +264,7 @@ ports:
 
 config:
   receivers:
-    # leave OTLP; the chart will expose 4317/4318 automatically (do not declare them manually)
+    # OTLP receiver for metrics, traces and logs
     otlp:
       protocols:
         grpc:
@@ -160,33 +278,55 @@ config:
       limit_percentage: 80
       spike_limit_percentage: 25
     batch: {}
+    # Add attributes processor for better log labeling
+    attributes:
+      actions:
+        - key: loki.attribute.labels
+          action: insert
+          value: service.name, service.namespace
 
   exporters:
+    # Metrics -> Prometheus
     prometheus:
       endpoint: "0.0.0.0:8889"
-    # optional debug exporter for logs
-    # debug: {}
+    
+    # Traces -> Tempo
+    otlp/tempo:
+      endpoint: "tempo.observability.svc.cluster.local:4317"
+      tls:
+        insecure: true
+    
+    # Logs -> Loki
+    loki:
+      endpoint: "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
+    
+    # Optional debug exporter
+    debug:
+      verbosity: detailed
 
   service:
     pipelines:
+      # Metrics pipeline
       metrics:
         receivers: [otlp]
         processors: [memory_limiter, batch]
         exporters: [prometheus]
-      # traces:
-      #   receivers: [otlp]
-      #   processors: [memory_limiter, batch]
-      #   exporters: []   # add Tempo/OTLP when you want
-      # logs:
-      #   receivers: [otlp]
-      #   processors: [memory_limiter, batch]
-      #   exporters: []   # add Loki/OTLP when you want
+      
+      # Traces pipeline
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlp/tempo, debug]
+      
+      # Logs pipeline
+      logs:
+        receivers: [otlp]
+        processors: [memory_limiter, batch, attributes]
+        exporters: [loki, debug]
 ```
 
 Install the Collector:
 ```bash
-kubectl create ns observability
-
 helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 
 helm repo update
@@ -202,11 +342,16 @@ kubectl -n observability get pods
 # otel-opentelemetry-collector-xxxxxxxxx-xxxxx   1/1     Running   0          30s
 ```
 
-> With this: your app will send **metrics/traces** via **OTLP** to the Collector. The Collector **exposes /metrics (8889)** and **Prometheus** will scrape it (auto‑discovered by Prometheus Operator if ServiceMonitor is enabled; in this minimal setup you can also scrape the Collector Service with an optional PodMonitor/ServiceMonitor).
+> With this: your app will send **metrics, traces and logs** via **OTLP** to the Collector. The Collector:
+> - Exports **metrics** to **Prometheus** (exposes /metrics on port 8889, auto-discovered via ServiceMonitor)
+> - Exports **traces** to **Tempo** (via OTLP gRPC on port 4317)
+> - Exports **logs** to **Loki** (via HTTP API)
+> 
+> All telemetry signals are then available in **Grafana** for unified observability with full correlation between metrics, traces and logs.
 
 ---
 
-## 6) Create the .NET API (Aspire‑ready) with OpenTelemetry
+## 8) Create the .NET API (Aspire‑ready) with OpenTelemetry
 
 ```bash
 mkdir demo-aspire && cd demo-aspire
@@ -220,16 +365,20 @@ dotnet add package OpenTelemetry.Instrumentation.AspNetCore --version 1.9.0
 dotnet add package OpenTelemetry.Instrumentation.Http --version 1.9.0
 dotnet add package OpenTelemetry.Instrumentation.Runtime --version 1.9.0
 
+# Additional packages for logging with OTLP
+dotnet add package Microsoft.Extensions.Logging --version 9.0.0
+
 # Additional packages for Aspire-ready
 dotnet add package Microsoft.Extensions.ServiceDiscovery --version 9.0.0
 dotnet add package Microsoft.Extensions.Http.Resilience --version 9.0.0
 ```
 
-`Program.cs` (minimal with OTLP to Collector):
+`Program.cs` (with OTLP exporting metrics, traces and logs):
 
 ```csharp
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using System.Diagnostics;
 
@@ -242,6 +391,7 @@ var otlp = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
 // ActivitySource for custom traces
 var activitySource = new ActivitySource(serviceName);
 
+// Configure OpenTelemetry (Metrics, Traces, Logs)
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(r => r
         .AddService(serviceName, serviceVersion)
@@ -274,6 +424,18 @@ builder.Services.AddOpenTelemetry()
          });
     });
 
+// Configure Logging with OTLP
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeScopes = true;
+    logging.IncludeFormattedMessage = true;
+    logging.AddOtlpExporter(o =>
+    {
+        o.Endpoint = new Uri(otlp);
+        o.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 
@@ -281,10 +443,14 @@ var app = builder.Build();
 
 app.MapHealthChecks("/health");
 app.MapControllers();
-app.MapGet("/ping", () => 
+app.MapGet("/ping", (ILogger<Program> logger) => 
 {
     using var activity = activitySource.StartActivity("ping-endpoint");
     activity?.SetTag("custom.endpoint", "ping");
+    
+    // Example log with different levels
+    logger.LogInformation("Ping endpoint called at {Timestamp}", DateTimeOffset.UtcNow);
+    
     return Results.Ok(new { ok = true, at = DateTimeOffset.UtcNow, version = serviceVersion });
 });
 
@@ -340,7 +506,7 @@ docker images | findstr demo-api
 
 ---
 
-## 7) Deploy the app to Kubernetes
+## 9) Deploy the app to Kubernetes
 
 > ⚠️ Important: Always use the profile `-p demo` with all minikube commands.
 
