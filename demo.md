@@ -197,14 +197,361 @@ In Grafana, create a **New Dashboard** with these panels:
 
 ---
 
-## 9) (Optional) Add logs (Loki) and traces (Tempo)
+## 9) Configure Grafana Data Sources for Tempo and Loki
 
-To extend:
-- Deploy **Loki** (`grafana/loki-stack`) and **Tempo** (`grafana/tempo` or `tempo-distributed`).
-- In the Collector, add `loki` exporters (HTTP push `/loki/api/v1/push`) and `otlp` to Tempo (`:4317`).
-- In Grafana, add **Loki** and **Tempo** datasources and explore logs/traces.
+Now that Tempo and Loki are deployed, let's configure them in Grafana to enable complete observability.
+
+### 9.1) Access Grafana
+
+```powershell
+# Get Grafana URL
+minikube -p demo service -n monitoring kps-grafana --url
+
+# Get admin password
+kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
+```
+
+Login with:
+- **User**: `admin`
+- **Password**: (from the command above)
+
+### 9.2) Add Loki Data Source
+
+1. Click **Add data source** again
+2. Search for **Loki**
+3. Configure:
+   - **Name**: `Loki`
+   - **URL**: `http://loki.observability:3100`
+4. Click **Save & test**
+
+You should see: ✅ **Data source is working**
+
+### 9.3) Add Tempo Data Source
+
+1. Go to **Configuration → Data Sources** (or **Connections → Data Sources**)
+2. Click **Add data source**
+3. Search for **Tempo**
+4. Configure:
+   - **Name**: `Tempo`
+   - **URL**: `http://tempo.observability:3200`
+   - **Trace to logs**
+     - **Datasource**: `Loki`
+     - **Span start time shift**: `-5m`
+     - **Span end time shift**: `5m`
+     - **Tags**: service.name -> service_name And service.namespace -> service_namespace
+   - **Trace to metrics**
+     - **Datasource**: `prometheus`
+     - **Span start time shift**: `-2m`
+     - **Span end time shift**: `2m`
+     - **Link Label**: Request Rate -> rate(aspnetcore_routing_match_attempts_total{service_name="${__span.tags["service.name"]}"}[5m])
+5. Click **Save & test**
+
+You should see: ✅ **Data source is working**
+
+## 17) Final result
+
+### 10.1) Generate traffic with traces
+
+```powershell
+# Get your app URL
+minikube -p demo service demo-api --url -n apps
+
+# Generate multiple requests to create traces
+for ($i=1; $i -le 10; $i++) {
+    curl <URL>/ping
+    Start-Sleep -Milliseconds 500
+}
+```
+
+### 10.2) Query traces in Grafana
+
+1. In Grafana, go to **Explore**
+2. Select **Tempo** as data source
+3. Click on **Search** tab
+4. You should see recent traces from your application
+5. Click on any trace to see the detailed span view
+
+**What you should see:**
+- **Service**: `demo-api`
+- **Operation**: `ping-endpoint` or `GET /ping`
+- **Spans**: HTTP request spans with timing information
+- **Tags**: `http.route=/ping`, `deployment.environment=Development`, etc.
+
+### 10.3) Advanced trace search
+
+Try these searches:
+- **By service**: `{ service.name="demo-api" }`
+- **By operation**: `{ name="GET /ping" }`
+- **By duration**: Filter traces taking more than 100ms
+- **By tag**: `{ http.route="/ping" }`
 
 ---
+
+## 11) Verify Logs in Loki
+
+### 11.1) Generate logs
+
+Your application is already sending logs via OpenTelemetry. Generate some activity:
+
+```powershell
+# Generate requests (this will create INFO logs)
+for ($i=1; $i -le 5; $i++) {
+    curl <URL>/ping
+    Start-Sleep -Seconds 1
+}
+```
+
+> **📋 Understanding Loki Labels**: 
+> The logs in Loki have these labels (you can see them in the Grafana UI when expanding a log entry):
+> - `job`: `1.0.0/demo-api` (combination of service namespace + name)
+> - `service_name`: `1.0.0/demo-api`
+> - `exporter`: `OTLP`
+> - `level`: `INFO`, `WARNING`, `ERROR`, etc.
+> - `instance`: Pod name (e.g., `demo-api-7585b9878d-196vj`)
+>
+> Use these labels in your LogQL queries!
+
+### 11.2) Query logs in Grafana
+
+1. In Grafana, go to **Explore**
+2. Select **Loki** as data source
+3. Try these LogQL queries:
+
+```logql
+# All logs from demo-api (use the correct job label)
+{job="1.0.0/demo-api"}
+
+# Only INFO level logs
+{job="1.0.0/demo-api", level="INFO"}
+
+# Logs from specific endpoint
+{job="1.0.0/demo-api"} |= "Ping endpoint called"
+
+# Search by exporter
+{exporter="OTLP"}
+
+# Using regex for service name
+{service_name=~".*demo-api.*"}
+```
+
+> **⚠️ Important**: The service labels are `job="1.0.0/demo-api"` and `service_name="1.0.0/demo-api"` because OpenTelemetry combines the service namespace (version) with the service name.
+
+**What you should see:**
+- Log messages from your .NET application
+- Timestamps and log levels
+- Service name and other resource attributes
+- Structured log data including trace IDs
+
+### 11.3) Log-to-Trace correlation
+
+1. In the log results, expand a log entry by clicking on it
+2. Look for the **trace_id** field in the structured data
+3. You should see the trace ID associated with each log entry
+4. Copy the trace ID
+5. Go to **Explore** → **Tempo** → **Search** → **TraceID** and paste it
+6. This shows the complete context: what happened (log) and how long it took (trace)
+
+> **💡 Tip**: In the log details, you can see fields like:
+> - `traceid`: The unique identifier for the trace
+> - `spanid`: The specific span within the trace
+> - `severity`: Log level (Information, Warning, Error)
+> - `body`: The actual log message
+
+---
+
+## 12) Create a Unified Observability Dashboard
+
+Let's create a dashboard that shows metrics, logs, and traces together.
+
+### 12.1) Create new dashboard
+
+1. In Grafana, go to **Dashboards → New → New Dashboard**
+2. Click **Add visualization**
+
+### 12.2) Panel 1 - Request Rate (Metrics)
+
+- **Data source**: Prometheus
+- **Query**: `rate(aspnetcore_routing_match_attempts_total{http_route="/ping"}[5m])`
+- **Title**: "Requests per Second - /ping"
+- **Visualization**: Time series
+- Click **Apply**
+
+### 12.3) Panel 2 - Request Duration (Traces)
+
+- Click **Add → Visualization**
+- **Data source**: Prometheus
+- **Query**: `histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket[5m]))`
+- **Title**: "P95 Request Duration"
+- **Visualization**: Time series
+- **Unit**: seconds (s)
+- Click **Apply**
+
+### 12.4) Panel 3 - Recent Logs (Logs)
+
+- Click **Add → Visualization**
+- **Data source**: Loki
+- **Query**: `{job="1.0.0/demo-api"} |= "Ping"`
+- **Title**: "Recent Application Logs"
+- **Visualization**: Logs
+- **Options**: Show time, Show labels
+- Click **Apply**
+
+### 12.5) Panel 4 - Recent Traces (Traces)
+
+- Click **Add → Visualization**
+- **Data source**: Tempo
+- In the query builder:
+  - **Query type**: **Search**
+  - **Service name**: Leave empty or type `demo-api`
+  - **Span name**: Leave empty
+  - **Min duration**: Leave empty
+  - **Max duration**: Leave empty
+  - **Limit**: 20
+- **Title**: "Recent Traces"
+- **Visualization**: **Table** (for a clean list view)
+- **Transform data** (optional):
+  - Click **Transform** tab
+  - Add transformation: **Organize fields**
+  - Show only: Service Name, Span Name, Duration, Start Time
+- Click **Apply**
+
+> **💡 Tip**: The Table visualization shows traces in a clear, readable format with columns for service, operation, duration, and timestamp. You can click on any trace row to see the full trace details.
+
+### 12.6) Save the dashboard
+
+1. Click the **Save dashboard** icon (💾)
+2. **Name**: "Demo API - Full Observability"
+3. Click **Save**
+
+---
+
+## 13) Demonstrate the Three Pillars of Observability
+
+### 13.1) Metrics → Logs → Traces workflow
+
+**Scenario**: Investigating application behavior
+
+1. **Start with Metrics** (High-level view):
+   - Go to your dashboard
+   - Look at "Requests per Second" panel
+   - Notice any spikes or anomalies
+
+2. **Drill down to Logs** (Context):
+   - Click on a time range in the metrics panel
+   - Check the "Recent Application Logs" panel
+   - See what was happening at that moment
+
+3. **Deep dive with Traces** (Details):
+   - Click on a log entry with a trace ID
+   - Jump to the trace in Tempo
+   - See exact timings, spans, and tags
+
+### 13.2) Example queries for each pillar
+
+**Metrics (Prometheus)**:
+```promql
+# Request rate
+rate(aspnetcore_routing_match_attempts_total[5m])
+
+# Error rate
+rate(aspnetcore_routing_match_attempts_total{http_response_status_code=~"5.."}[5m])
+
+# Memory usage
+process_runtime_dotnet_gc_heap_size_bytes
+```
+
+**Logs (Loki)**:
+```logql
+# All logs from demo-api (correct label)
+{job="1.0.0/demo-api"}
+
+# Errors only
+{job="1.0.0/demo-api"} |~ "(?i)error|exception|fail"
+
+# Filter by log level
+{job="1.0.0/demo-api", level="INFO"}
+
+# Search in log message
+{job="1.0.0/demo-api"} |= "Ping endpoint"
+```
+
+**Traces (Tempo)**:
+- Search by service: `demo-api`
+- Search by duration: `> 100ms`
+- Search by tag: `http.status_code=200`
+
+---
+
+## 14) Advanced Correlation Examples
+
+### 14.1) Find slow requests across all signals
+
+**Step 1 - Metrics**: Find time range with high latency
+```promql
+histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket[5m])) > 0.1
+```
+
+**Step 2 - Traces**: Search for slow traces in that time range
+- Go to Tempo
+- Filter by service: `demo-api`
+- Filter by duration: `> 100ms`
+- Look at the trace details
+
+**Step 3 - Logs**: Check logs for those traces
+```logql
+{job="1.0.0/demo-api"} | json | traceid="<trace_id_from_tempo>"
+```
+
+> **💡 Note**: The trace ID field in Loki logs is `traceid` (lowercase, no underscore)
+
+### 14.2) Investigate errors end-to-end
+
+**Step 1 - Metrics**: Detect error rate
+```promql
+rate(aspnetcore_routing_match_attempts_total{http_response_status_code=~"5.."}[5m])
+```
+
+**Step 2 - Logs**: Find error messages
+```logql
+{job="1.0.0/demo-api"} |~ "(?i)error|exception"
+```
+
+**Step 3 - Traces**: See what caused the error
+- Click on trace ID from logs
+- Navigate to Tempo
+- Analyze spans and tags
+
+---
+
+## 15) Test the Complete Stack
+
+Run this comprehensive test:
+
+```powershell
+# Generate varied traffic
+$url = "<YOUR_MINIKUBE_SERVICE_URL>"
+
+# Normal requests
+1..20 | ForEach-Object {
+    curl "$url/ping"
+    Start-Sleep -Milliseconds 200
+}
+
+# Check all data sources in Grafana:
+# 1. Prometheus: rate(aspnetcore_routing_match_attempts_total[1m])
+# 2. Loki: {job="1.0.0/demo-api"} |= "Ping endpoint called"
+# 3. Tempo: Search for service "demo-api"
+```
+
+**Verify in Grafana**:
+1. ✅ Metrics showing in Prometheus
+2. ✅ Logs appearing in Loki
+3. ✅ Traces visible in Tempo
+4. ✅ Correlation links working (click trace ID in logs → opens in Tempo)
+
+---
+
+## 16) Quick Troubleshooting for Tempo & Loki
 
 ## 10) Quick troubleshooting
 
@@ -268,14 +615,38 @@ kubectl port-forward -n observability svc/otel-opentelemetry-collector 8889:8889
 
 ---
 
-## Final result
+## 17) Final result
 
 ```
 Docker Host
 └── Minikube (Docker driver)
-    ├── kube-prometheus-stack (Prometheus + Grafana)
-    ├── OpenTelemetry Collector (OTLP → /metrics)
-    └── Demo.Api (.NET Aspire‑ready)
+    ├── Namespace: monitoring
+    │   ├── Prometheus (metrics storage & queries)
+    │   └── Grafana (unified visualization)
+    │
+    ├── Namespace: observability
+    │   ├── OpenTelemetry Collector (telemetry gateway)
+    │   │   ├── Receives: OTLP (metrics, traces, logs)
+    │   │   ├── Exports metrics → Prometheus (:8889)
+    │   │   ├── Exports traces → Tempo (:4317)
+    │   │   └── Exports logs → Loki (HTTP API)
+    │   ├── Tempo (distributed tracing backend)
+    │   └── Loki (log aggregation system)
+    │
+    └── Namespace: apps
+        └── Demo.Api (.NET 9 with OpenTelemetry)
+            ├── Sends metrics via OTLP
+            ├── Sends traces via OTLP
+            └── Sends logs via OTLP
 ```
 
-Minimal, reproducible stack ready for **cloud-agnostic** demos 🎯
+**Complete observability stack with:**
+- ✅ **Metrics** (Prometheus) - Performance & health monitoring
+- ✅ **Traces** (Tempo) - Distributed tracing & latency analysis
+- ✅ **Logs** (Loki) - Application logs & debugging
+- ✅ **Unified view** (Grafana) - Single pane of glass
+- ✅ **Full correlation** - Jump between metrics, logs, and traces
+- ✅ **100% Open Source** - No vendor lock-in
+- ✅ **Cloud-agnostic** - Runs anywhere Kubernetes runs
+
+Minimal, reproducible, production-ready observability stack 🎯

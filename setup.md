@@ -300,7 +300,7 @@ config:
     
     # Logs -> Loki
     loki:
-      endpoint: "http://loki.observability.svc.cluster.local:3100/loki/api/v1/push"
+      endpoint: "http://loki-gateway.observability.svc.cluster.local/loki/api/v1/push"
     
     # Optional debug exporter
     debug:
