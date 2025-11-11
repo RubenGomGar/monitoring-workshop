@@ -149,12 +149,18 @@ kubectl port-forward -n monitoring svc/kps-kube-prometheus-stack-prometheus 9090
 
 ### 8.4) Finally: View in Grafana
 
+Powershell:
 ```powershell
 # Get Grafana URL
 minikube -p demo service -n monitoring kps-grafana --url
 
 # Get password
 kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}" | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
+```
+
+Linux/macOS/Git Bash:
+```bash
+kubectl -n monitoring get secret kps-grafana -o jsonpath="{.data.admin-password}" | base64 -d; echo
 ```
 
 **In Grafana:**
