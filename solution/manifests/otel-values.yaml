@@ -1,0 +1,96 @@
+mode: deployment
+replicaCount: 1
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: 0.112.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+
+serviceMonitor:
+  enabled: true
+  extraLabels:
+    release: kps
+  metricsEndpoints:
+  - port: prom-exporter
+
+# Optimized resources
+resources:
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+
+# We expose the Prometheus exporter metrics port
+ports:
+  prom-exporter:
+    enabled: true
+    containerPort: 8889
+    servicePort: 8889
+    protocol: TCP
+
+config:
+  receivers:
+    # OTLP receiver for metrics, traces and logs
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  processors:
+    memory_limiter:
+      check_interval: 5s
+      limit_percentage: 80
+      spike_limit_percentage: 25
+    batch: {}
+    # Add attributes processor for better log labeling
+    attributes:
+      actions:
+        - key: loki.attribute.labels
+          action: insert
+          value: service.name, service.namespace
+
+  exporters:
+    # Metrics -> Prometheus
+    prometheus:
+      endpoint: "0.0.0.0:8889"
+    
+    # Traces -> Tempo
+    otlp/tempo:
+      endpoint: "tempo.observability.svc.cluster.local:4317"
+      tls:
+        insecure: true
+    
+    # Logs -> Loki
+    loki:
+      endpoint: "http://loki-gateway.observability.svc.cluster.local/loki/api/v1/push"
+    
+    # Optional debug exporter
+    debug:
+      verbosity: detailed
+
+  service:
+    pipelines:
+      # Metrics pipeline
+      metrics:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [prometheus]
+      
+      # Traces pipeline
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlp/tempo, debug]
+      
+      # Logs pipeline
+      logs:
+        receivers: [otlp]
+        processors: [memory_limiter, batch, attributes]
+        exporters: [loki, debug]

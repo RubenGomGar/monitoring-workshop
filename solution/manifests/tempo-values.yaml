@@ -1,0 +1,23 @@
+tempo:
+  reportingEnabled: false
+  metricsGenerator:
+    enabled: true
+    remoteWriteUrl: "http://kps-kube-prometheus-st-prometheus.monitoring:9090/api/v1/write"
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: kps
+
+# Optimized resources for demo
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
