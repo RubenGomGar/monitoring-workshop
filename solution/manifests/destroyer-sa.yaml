@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-destroyer
+  namespace: apps
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-destroyer
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-destroyer-binding
+subjects:
+- kind: ServiceAccount
+  name: pod-destroyer
+  namespace: apps
+roleRef:
+  kind: ClusterRole
+  name: pod-destroyer
+  apiGroup: rbac.authorization.k8s.io
