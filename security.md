@@ -1,4 +1,4 @@
-# 🔒 Security Extra: Kubernetes and Docker Security Basics
+# 🔒 Security: Kubernetes and Docker Security Basics
 
 Securing your Kubernetes cluster and containers is not optional—it's **essential**. In this hands-on section, we'll explore basic practical security measures you can implement right now.
 
@@ -315,13 +315,101 @@ kubectl auth can-i delete pods --as=system:serviceaccount:apps:pod-reader -n app
 # Should return: no
 ```
 
+# 5) Additional: Pentesting K8S
+
+If you still have so time left, you can try this tool: [peirates](https://github.com/inguardians/peirates).
+
+> ⚠️⚠️⚠️ Do NOT use these tools if you do not know what you are doing.
+
+First, set a service account with plenty of permissions and a pentesting-pod:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-destroyer
+  namespace: apps
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-destroyer
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-destroyer-binding
+subjects:
+- kind: ServiceAccount
+  name: pod-destroyer
+  namespace: apps
+roleRef:
+  kind: ClusterRole
+  name: pod-destroyer
+  apiGroup: rbac.authorization.k8s.io
+```
+
+Deploy this new service account and role:
+```bash
+kubectl apply -f destroyer-sa.yaml
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-pentest-pod
+  namespace: apps
+  labels:
+    app: k8s-pentest-pod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-pentest-pod
+  template:
+    metadata:
+      labels:
+        app: k8s-pentest-pod
+    spec:
+      serviceAccountName: pod-destroyer
+      containers:
+        - name: k8s-pentest-pod
+          image: bustakube/alpine-peirates:v1.1.27d
+          imagePullPolicy: IfNotPresent
+```
+
+```bash
+kubectl apply -f k8s-pentest-pod.yaml
+```
+
+Now, access the pod:
+```bash
+# Open the tool
+peirates
+
+# Commands
+list-pods
+list-ns # Try to change to the monitoring namespace and list the pods again
+list-sa
+
+dump-pod-info
+switch-ns 
+```
+
 ## 📚 Additional Resources
 
 ### Documentation
+- [K8S Security Checklist](https://kubernetes.io/docs/concepts/security/security-checklist/)
 - [Kubernetes Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
 - [RBAC Good Practices](https://kubernetes.io/docs/concepts/security/rbac-good-practices/)
 - [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
 - [OWASP Docker Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html)
+- [Kubernetes Pentesting Multi-cloud](https://cloud.hacktricks.wiki/en/pentesting-cloud/kubernetes-security/index.html)
 
 ### Tools
 - [Trivy Official Docs](https://trivy.dev/dev/docs/scanner/vulnerability/)
