@@ -1,4 +1,4 @@
-# 🔍 Workshop: Local Observability - From Zero to Hero
+﻿# 🔍 Workshop: Local Observability - From Zero to Hero
 
 ## 💡 Why Observability?
 
@@ -41,75 +41,102 @@ In this workshop we'll build **from scratch** a complete observability stack:
 ### Visual Flow Diagram
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': { 
+  'primaryColor':'#f8fafc',
+  'primaryTextColor':'#1e293b',
+  'primaryBorderColor':'#cbd5e1',
+  'lineColor':'#64748b',
+  'secondaryColor':'#f1f5f9',
+  'tertiaryColor':'#e2e8f0',
+  'clusterBkg':'#f8fafc',
+  'clusterBorder':'#cbd5e1',
+  'edgeLabelBackground':'#ffffff',
+  'fontFamily':'ui-sans-serif, system-ui, sans-serif'
+}}}%%
 graph TB
-    %% Node styles
-    classDef k8s fill:#326CE5,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef app fill:#68217A,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef otel fill:#F5A623,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef prometheus fill:#E6522C,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef grafana fill:#F46800,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef tempo fill:#00ADD8,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef loki fill:#7B42BC,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef docker fill:#0db7ed,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef user fill:#28a745,stroke:#ffffff,stroke-width:2px,color:#ffffff
-
-    %% Docker and Minikube
-    subgraph "💻 Local Machine"
-        Docker["🐳 Docker Desktop"]
+    %% Elegant modern styles - softer pastel colors
+    classDef userStyle fill:#dcfce7,stroke:#86efac,stroke-width:2px,color:#166534,font-weight:bold
+    classDef dockerStyle fill:#dbeafe,stroke:#60a5fa,stroke-width:2px,color:#1e3a8a,font-weight:bold
+    classDef appStyle fill:#e9d5ff,stroke:#c084fc,stroke-width:2px,color:#6b21a8,font-weight:bold
+    classDef otelStyle fill:#fed7aa,stroke:#fb923c,stroke-width:2px,color:#9a3412,font-weight:bold
+    classDef tempoStyle fill:#cffafe,stroke:#22d3ee,stroke-width:2px,color:#164e63,font-weight:bold
+    classDef lokiStyle fill:#fce7f3,stroke:#f472b6,stroke-width:2px,color:#9f1239,font-weight:bold
+    classDef promStyle fill:#fee2e2,stroke:#f87171,stroke-width:2px,color:#991b1b,font-weight:bold
+    classDef grafanaStyle fill:#ffedd5,stroke:#fdba74,stroke-width:2px,color:#9a3412,font-weight:bold
+    classDef operatorStyle fill:#e0e7ff,stroke:#a5b4fc,stroke-width:2px,color:#3730a3,font-weight:bold
+    
+    %% User interaction layer
+    User["<b>👤 USER</b><br/><br/>🌐 Web Browser<br/>💻 Local Access"]
+    
+    %% Infrastructure layer
+    subgraph Local["<b>💻 LOCAL MACHINE</b>"]
+        direction TB
+        Docker["<b>🐳 DOCKER DESKTOP</b><br/><br/>Container Runtime"]
         
-        subgraph "☸️ Minikube Cluster (driver: docker)"
-            subgraph "📦 Namespace: apps"
-                DemoAPI["🚀 Demo API (.NET 9)<br/>📊 OpenTelemetry Instrumentation<br/>🔗 OTLP Endpoint"]
+        subgraph K8s["<b>☸️ MINIKUBE CLUSTER</b>"]
+            direction TB
+            
+            %% Application namespace
+            subgraph AppNS["<b>📦 namespace: apps</b>"]
+                direction TB
+                API["<b>🚀 DEMO API</b><br/><br/>.NET 9 + OpenTelemetry<br/>📤 Port 8080"]
             end
             
-            subgraph "📦 Namespace: observability"
-                OTelCollector["📡 OpenTelemetry Collector<br/>🔄 OTLP → Prometheus/Tempo/Loki<br/>📈 Metrics Export (8889)"]
-                Tempo["🔀 Grafana Tempo<br/>📍 Traces Storage<br/>🎯 OTLP Receiver (4317)"]
-                Loki["📝 Grafana Loki<br/>📋 Logs Storage<br/>🔗 HTTP API (3100)"]
+            %% Observability namespace
+            subgraph ObsNS["<b>📦 namespace: observability</b>"]
+                direction TB
+                Collector["<b>📡 OTEL COLLECTOR</b><br/><br/>Pipeline Engine<br/>📥 OTLP 4317/4318<br/>📤 Metrics 8889"]
+                TempoSvc["<b>🔀 TEMPO</b><br/><br/>Traces Storage<br/>📥 OTLP 4317<br/>💾 Persistent"]
+                LokiSvc["<b>📝 LOKI</b><br/><br/>Logs Storage<br/>📥 HTTP 3100<br/>💾 Persistent"]
             end
             
-            subgraph "📦 Namespace: monitoring"
-                Prometheus["🔍 Prometheus<br/>📊 Metrics Storage<br/>🎯 Auto-discovery"]
-                Grafana["📈 Grafana<br/>📋 Dashboards<br/>👤 admin/password"]
-                AlertManager["🚨 AlertManager"]
-                PrometheusOperator["⚙️ Prometheus Operator<br/>🔍 ServiceMonitor Discovery"]
+            %% Monitoring namespace
+            subgraph MonNS["<b>📦 namespace: monitoring</b>"]
+                direction TB
+                PromOp["<b>⚙️ PROMETHEUS<br/>OPERATOR</b><br/><br/>Auto-Discovery"]
+                Prom["<b>🔍 PROMETHEUS</b><br/><br/>Metrics Storage<br/>🌐 Port 9090<br/>💾 Time-Series DB"]
+                Graf["<b>📈 GRAFANA</b><br/><br/>Unified Dashboards<br/>🌐 Port 3000<br/>👤 admin/password"]
+                Alert["<b>🚨 ALERTMANAGER</b><br/><br/>Notifications"]
             end
         end
     end
     
-    %% User
-    User["👤 User<br/>🌐 Browser"]
+    %% User connections - solid arrows for user interactions
+    User -->|"<b>:3000</b><br/>Dashboards"| Graf
+    User -->|"<b>:9090</b><br/>Metrics Query"| Prom
+    User -->|"<b>curl</b><br/>Test API"| API
     
-    %% Main connections
-    User -->|":3000 📈 Dashboard"| Grafana
-    User -->|":9090 🔍 Queries"| Prometheus
-    User -->|"curl /ping 🏃"| DemoAPI
+    %% Data flow - thick arrows for telemetry data
+    API ==>|"<b>OTLP :4317</b><br/>Metrics/Traces/Logs"| Collector
     
-    %% Data flow
-    DemoAPI -->|"OTLP gRPC :4317<br/>📊 Metrics + Traces + Logs"| OTelCollector
-    OTelCollector -->|"HTTP :8889<br/>📈 /metrics endpoint"| Prometheus
-    OTelCollector -->|"OTLP gRPC :4317<br/>📍 Traces"| Tempo
-    OTelCollector -->|"HTTP :3100<br/>📋 Logs"| Loki
-    Prometheus -->|"PromQL Queries<br/>📊 Data Source"| Grafana
-    Tempo -->|"TraceQL Queries<br/>📍 Data Source"| Grafana
-    Loki -->|"LogQL Queries<br/>📋 Data Source"| Grafana
+    %% Collector distribution
+    Collector ==>|"<b>HTTP :8889</b><br/>Prometheus Format"| Prom
+    Collector ==>|"<b>OTLP :4317</b><br/>Traces"| TempoSvc
+    Collector ==>|"<b>HTTP :3100</b><br/>Logs"| LokiSvc
     
-    %% ServiceMonitor
-    PrometheusOperator -->|"🎯 Auto-discovery<br/>ServiceMonitor"| OTelCollector
-    PrometheusOperator -->|"⚙️ Config Management"| Prometheus
+    %% Backend to Grafana - dotted for queries
+    Prom -.->|"<b>PromQL</b>"| Graf
+    TempoSvc -.->|"<b>TraceQL</b>"| Graf
+    LokiSvc -.->|"<b>LogQL</b>"| Graf
     
-    %% Docker relationship
-    Docker -->|"🏗️ Container Runtime"| Minikube
+    %% Operator management
+    PromOp -.->|"ServiceMonitor"| Collector
+    PromOp -.->|"Config"| Prom
+    PromOp -.->|"Rules"| Alert
+    
+    %% Infrastructure
+    Docker -->|"Runtime"| K8s
     
     %% Apply styles
-    class Docker,Minikube docker
-    class DemoAPI app
-    class OTelCollector otel
-    class Prometheus,PrometheusOperator,AlertManager prometheus
-    class Grafana grafana
-    class Tempo tempo
-    class Loki loki
-    class User user
+    class User userStyle
+    class Docker dockerStyle
+    class API appStyle
+    class Collector otelStyle
+    class TempoSvc tempoStyle
+    class LokiSvc lokiStyle
+    class Prom,Alert promStyle
+    class Graf grafanaStyle
+    class PromOp operatorStyle
 ```
 
 ## 📋 Components and Ports
@@ -163,87 +190,62 @@ sequenceDiagram
     GRAF->>User: 📈 Unified visualization
 ```
 
-## 🎯 Key Monitored Metrics
+<div align="center">
+
+## 🎯 Key Monitored Signals
 
 ```mermaid
-graph TD
-    Root["📊 Observability Signals"]
+%%{init: {'theme':'base', 'themeVariables': { 
+  'primaryColor':'#f8fafc',
+  'primaryTextColor':'#1e293b',
+  'primaryBorderColor':'#cbd5e1',
+  'lineColor':'#64748b',
+  'secondaryColor':'#f1f5f9',
+  'tertiaryColor':'#e2e8f0',
+  'fontFamily':'ui-sans-serif, system-ui, sans-serif'
+}}}%%
+graph TB
+    %% Elegant pastel styles
+    classDef rootStyle fill:#fee2e2,stroke:#f87171,stroke-width:3px,color:#991b1b,font-weight:bold
+    classDef metricsStyle fill:#dbeafe,stroke:#60a5fa,stroke-width:2px,color:#1e3a8a,font-weight:bold
+    classDef tracesStyle fill:#cffafe,stroke:#22d3ee,stroke-width:2px,color:#164e63,font-weight:bold
+    classDef logsStyle fill:#fce7f3,stroke:#f472b6,stroke-width:2px,color:#9f1239,font-weight:bold
+    classDef itemStyle fill:#f1f5f9,stroke:#cbd5e1,stroke-width:1px,color:#475569
     
-    Root --> Metrics["📈 Metrics"]
-    Root --> Traces["📍 Traces"] 
-    Root --> Logs["� Logs"]
+    Root["<b>📊 OBSERVABILITY SIGNALS</b>"]
     
-    Metrics --> M1["aspnetcore_routing_match_attempts_total"]
-    Metrics --> M2["http_server_request_duration_seconds"]
-    Metrics --> M3["process_runtime_dotnet_gc_collections_total"]
-    Metrics --> M4["kestrel_active_connections"]
+    %% Column 1: Metrics
+    Root --> Metrics["<b>📈 METRICS</b><br/>Performance & Health"]
+    Metrics --> M1["HTTP routing<br/>attempts"]
+    M1 --> M2["Request<br/>duration"]
+    M2 --> M3["GC<br/>collections"]
+    M3 --> M4["Active<br/>connections"]
     
-    Traces --> T1["HTTP request spans"]
-    Traces --> T2["Database query spans"]
-    Traces --> T3["External API call spans"]
-    Traces --> T4["End-to-end tracing"]
+    %% Column 2: Traces  
+    Root --> Traces["<b>📍 TRACES</b><br/>Request Flow"]
+    Traces --> T1["HTTP request<br/>spans"]
+    T1 --> T2["Database<br/>queries"]
+    T2 --> T3["External API<br/>calls"]
+    T3 --> T4["End-to-end<br/>tracing"]
     
-    Logs --> L1["Application logs"]
-    Logs --> L2["Error logs"]
-    Logs --> L3["Request logs"]
-    Logs --> L4["Structured logging"]
-
-    %% Styles
-    classDef rootNode fill:#E6522C,stroke:#ffffff,stroke-width:3px,color:#ffffff
-    classDef categoryNode fill:#326CE5,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef signalNode fill:#68217A,stroke:#ffffff,stroke-width:1px,color:#ffffff
+    %% Column 3: Logs
+    Root --> Logs["<b>📋 LOGS</b><br/>Event Records"]
+    Logs --> L1["Application<br/>events"]
+    L1 --> L2["Error<br/>tracking"]
+    L2 --> L3["Request<br/>logging"]
+    L3 --> L4["Structured<br/>data"]
     
-    class Root rootNode
-    class Metrics,Traces,Logs categoryNode
-    class M1,M2,M3,M4,T1,T2,T3,T4,L1,L2,L3,L4 signalNode
+    %% Apply styles
+    class Root rootStyle
+    class Metrics metricsStyle
+    class Traces tracesStyle
+    class Logs logsStyle
+    class M1,M2,M3,M4,T1,T2,T3,T4,L1,L2,L3,L4 itemStyle
 ```
 
-## 🚀 Technology Stack
-
-```mermaid
-graph LR
-    subgraph "🏗️ Infrastructure"
-        A[🐳 Docker] --> B[☸️ Minikube]
-        B --> C[🎛️ Helm Charts]
-    end
-    
-    subgraph "📊 Observability Stack"
-        D[📡 OpenTelemetry] --> E[🔍 Prometheus]
-        D --> H[🔀 Tempo]
-        D --> I[📝 Loki]
-        E --> F[📈 Grafana]
-        H --> F
-        I --> F
-        G[⚙️ Prometheus Operator] --> E
-    end
-    
-    subgraph "🚀 Application"
-        J[.NET 9] --> K[OpenTelemetry SDK]
-        K --> L[OTLP Exporter]
-    end
-    
-    C --> D
-    C --> G
-    C --> F
-    C --> H
-    C --> I
-    L --> D
-
-    %% Styles
-    classDef infra fill:#0db7ed,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef obs fill:#E6522C,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef app fill:#68217A,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef tempo fill:#00ADD8,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    classDef loki fill:#7B42BC,stroke:#ffffff,stroke-width:2px,color:#ffffff
-    
-    class A,B,C infra
-    class D,E,F,G obs
-    class J,K,L app
-    class H tempo
-    class I loki
-```
-
----
+</div>
+</br>
+</br>
 
 > 🎉 **100% local and cloud-agnostic architecture!** 
 > 
