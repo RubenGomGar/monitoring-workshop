@@ -51,6 +51,16 @@ builder.Logging.AddOpenTelemetry(logging =>
 {
     logging.IncludeScopes = true;
     logging.IncludeFormattedMessage = true;
+    
+    // Configure resource for logs
+    logging.SetResourceBuilder(ResourceBuilder.CreateDefault()
+        .AddService(serviceName, serviceVersion)
+        .AddAttributes(new Dictionary<string, object>
+        {
+            ["deployment.environment"] = builder.Environment.EnvironmentName,
+            ["service.instance.id"] = Environment.MachineName
+        }));
+    
     logging.AddOtlpExporter(o =>
     {
         o.Endpoint = new Uri(otlp);
