@@ -36,6 +36,8 @@ choco install minikube -y
 minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.0
 # minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.0 --cni=calico // For the security demo
 
+minikube addons enable metrics-server -p demo
+
 kubectl get nodes
 
 minikube -p demo dashboard
@@ -500,16 +502,16 @@ EXPOSE 8080
 ENTRYPOINT ["dotnet", "Demo.Api.dll"]
 ```
 
-Build the image **inside Minikube** (remember the `docker-env` from step 3):
+Build the image and load it into **Minikube with containerd**:
 ```powershell
-# Configure docker-env (if you haven't done it)
-& minikube -p demo docker-env | Invoke-Expression
-
-# Build the image
+# Build the image locally (in your Docker Desktop)
 docker build -t demo-api:0.1 .
 
+# Load the image into Minikube's containerd runtime
+minikube image load demo-api:0.1 -p demo
+
 # Verify the image is in Minikube
-docker images | findstr demo-api
+minikube image ls -p demo | findstr demo-api
 ```
 
 ---

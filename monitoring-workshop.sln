@@ -8,6 +8,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "demo-aspire", "demo-aspire"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.Api", "solution\demo-aspire\Demo.Api\Demo.Api.csproj", "{B40DD86D-93F6-352E-5794-639273EC1FD9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo.Api.Net10", "solution\demo-aspire\Demo.Api.Net10\Demo.Api.Net10.csproj", "{7BC171AD-4F1E-4E7F-BBE3-A9E8B8466F07}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,6 +20,10 @@ Global
 		{B40DD86D-93F6-352E-5794-639273EC1FD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B40DD86D-93F6-352E-5794-639273EC1FD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B40DD86D-93F6-352E-5794-639273EC1FD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BC171AD-4F1E-4E7F-BBE3-A9E8B8466F07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BC171AD-4F1E-4E7F-BBE3-A9E8B8466F07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BC171AD-4F1E-4E7F-BBE3-A9E8B8466F07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BC171AD-4F1E-4E7F-BBE3-A9E8B8466F07}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -25,6 +31,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{FDA217AF-3F60-F2A1-B791-05BC676F1314} = {284B0C48-6525-F3F5-CD5D-7841BD44174A}
 		{B40DD86D-93F6-352E-5794-639273EC1FD9} = {FDA217AF-3F60-F2A1-B791-05BC676F1314}
+		{7BC171AD-4F1E-4E7F-BBE3-A9E8B8466F07} = {FDA217AF-3F60-F2A1-B791-05BC676F1314}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {6CE3781A-5AFB-40F7-81E6-CDA344626D47}
