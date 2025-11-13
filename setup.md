@@ -33,8 +33,8 @@ choco install minikube -y
 ## 2) Start Minikube inside Docker
 
 ```bash
-minikube start -p demo --driver=docker
-# minikube start -p demo --driver=docker --cni=calico // For the security demo
+minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.0
+# minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.0 --cni=calico // For the security demo
 
 kubectl get nodes
 
@@ -82,6 +82,12 @@ kubectl -n monitoring get pods
 # Wait until all show Ready (may take 2-3 minutes)
 # You should see: alertmanager, grafana, kube-state-metrics, node-exporter, prometheus-operator, prometheus-server
 ```
+
+✅ kubelet (cAdvisor) - métricas de containers/pods
+✅ kube-state-metrics - estado de objetos de K8s
+✅ node-exporter - métricas del sistema operativo
+✅ coredns - métricas de DNS
+✅ apiserver - métricas del API server
 
 Get the Grafana URL:
 ```bash
