@@ -380,11 +380,10 @@ Let's create a dashboard that shows metrics, logs, and traces together.
 
 - Click **Add → Visualization**
 - **Data source**: Prometheus
-- **Query**: `histogram_quantile(0.95, rate(http_server_request_duration_seconds_bucket[5m]))`
-- **Title**: "P95 Request Duration"
+- **Query**: `rate(http_server_request_duration_seconds_sum[5m]) / rate(http_server_request_duration_seconds_count[5m])`
+- **Legend**: `Average Duration`
+- **Title**: "Request Duration - Average"
 - **Visualization**: Time series
-- **Unit**: seconds (s)
-- Click **Apply**
 
 ### 12.4) Panel 3 - Recent Logs (Logs)
 

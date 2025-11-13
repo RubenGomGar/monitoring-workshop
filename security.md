@@ -107,6 +107,12 @@ Name the previous file as Dockerfile.bad and build the image:
 
 ```bash
 docker build -f Dockerfile.bad -t demo-root:local .
+
+# Load the image into Minikube's containerd runtime
+minikube image load demo-root:local -p demo
+
+# Verify the image is in Minikube
+minikube image ls -p demo | findstr demo-root
 ```
 
 ### 2.3) Detect it with Trivy
