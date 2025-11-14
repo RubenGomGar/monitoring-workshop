@@ -48,20 +48,16 @@ You should see 1 node `Ready`.
 
 ---
 
-## 3) Build images directly in Minikube's Docker daemon
+## 3) Build images directly between AKS containerd and docker
 
 Avoid using a registry. Build inside Minikube's daemon:
 
 ```powershell
-# In PowerShell (Windows):
-& minikube -p demo docker-env | Invoke-Expression
+# Load the image into Minikube's containerd runtime
+minikube image load demo-api:0.1 -p demo
 
-# In Bash (Linux/Mac):
-# eval $(minikube -p demo docker-env)
-
-# Verify configuration:
-docker images
-# from here, any 'docker build' is stored inside Minikube
+# Verify the image is in Minikube
+minikube image ls -p demo | findstr demo-api
 ```
 
 ---
