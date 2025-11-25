@@ -15,9 +15,11 @@ spec:
       labels:
         app: demo-api-net10
     spec:
+      imagePullSecrets:
+        - name: acr-rgakslabacr-pull
       containers:
         - name: demo-api-net10
-          image: demo-api-10:0.1
+          image: rgakslabacr.azurecr.io/demo-api-net10:0.3-amd64
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
