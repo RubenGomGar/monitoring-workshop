@@ -26,7 +26,10 @@ You can download it and install it for any major distribution [here](https://git
 **On Linux/WSL:**
 ```bash
 # Install Trivy
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin v0.67.2
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin v0.68.2
+
+# Windows
+choco install trivy
 
 # Verify installation
 trivy --version

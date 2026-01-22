@@ -33,8 +33,10 @@ choco install minikube -y
 ## 2) Start Minikube inside Docker
 
 ```bash
-minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.0
-# minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.0 --cni=calico // For the security demo
+minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.2
+# kubernetes-version=v1.35.0 soon in Feb 26 (AKS)
+
+# minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.2 --cni=calico // For the security demo
 
 minikube addons enable metrics-server -p demo
 
@@ -81,11 +83,11 @@ kubectl -n monitoring get pods
 # You should see: alertmanager, grafana, kube-state-metrics, node-exporter, prometheus-operator, prometheus-server
 ```
 
-✅ kubelet (cAdvisor) - métricas de containers/pods
-✅ kube-state-metrics - estado de objetos de K8s
-✅ node-exporter - métricas del sistema operativo
-✅ coredns - métricas de DNS
-✅ apiserver - métricas del API server
+✅ kubelet (cAdvisor) - containers/pods metrics
+✅ kube-state-metrics - K8s object's state
+✅ node-exporter - OS metrics
+✅ coredns - DNS metrics
+✅ apiserver - API server metrics
 
 Get the Grafana URL:
 ```bash
@@ -238,7 +240,7 @@ replicaCount: 1
 
 image:
   repository: otel/opentelemetry-collector-contrib
-  tag: 0.112.0
+  tag: 0.130.0
   pullPolicy: IfNotPresent
 
 service:
@@ -365,11 +367,11 @@ dotnet new webapi -n Demo.Api
 cd Demo.Api
 
 # Base OpenTelemetry packages (updated versions)
-dotnet add package OpenTelemetry.Extensions.Hosting --version 1.9.0
-dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol --version 1.9.0
-dotnet add package OpenTelemetry.Instrumentation.AspNetCore --version 1.9.0
-dotnet add package OpenTelemetry.Instrumentation.Http --version 1.9.0
-dotnet add package OpenTelemetry.Instrumentation.Runtime --version 1.9.0
+dotnet add package OpenTelemetry.Extensions.Hosting --version 1.14.0
+dotnet add package OpenTelemetry.Exporter.OpenTelemetryProtocol --version 1.14.0
+dotnet add package OpenTelemetry.Instrumentation.AspNetCore --version 1.14.0
+dotnet add package OpenTelemetry.Instrumentation.Http --version 1.14.0
+dotnet add package OpenTelemetry.Instrumentation.Runtime --version 1.14.0
 
 # Additional packages for logging with OTLP
 dotnet add package Microsoft.Extensions.Logging --version 9.0.0
