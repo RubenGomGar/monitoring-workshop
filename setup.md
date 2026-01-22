@@ -38,6 +38,10 @@ minikube start -p demo --driver=docker --container-runtime=containerd --kubernet
 
 # minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.2 --cni=calico // For the security demo
 
+## TO ALLOW POD RESIZING in minikube
+#  --extra-config=apiserver.feature-gates=InPlacePodVerticalScaling=true, InPlacePodLevelResourcesVerticalScaling=true,PodLevelResources=true,NodeDeclaredFeatures=true --extra-config=kubelet.feature-gates=InPlacePodVerticalScaling=true,InPlacePodLevelResourcesVerticalScaling=true,PodLevelResources=true,NodeDeclaredFeatures=true
+
+
 minikube addons enable metrics-server -p demo
 
 kubectl get nodes
