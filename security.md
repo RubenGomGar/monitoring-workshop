@@ -9,12 +9,14 @@ In modern containerized environments, security breaches can happen at multiple l
 - 🔓 **Unrestricted network communication** between pods
 - 👤 **Containers running as root** with excessive privileges
 - 🎯 **Misconfigured RBAC** allowing unauthorized access
+- ⚙️ **Suboptimal resource allocation** causing unnecessary restarts and service downtime
 
 **🎯 What you'll learn:**
 - ✅ Scan container images for vulnerabilities with Trivy
 - ✅ Implement Network Policies to isolate pods
 - ✅ Configure RBAC for least-privilege access
 - ✅ Run containers as non-root users
+- ✅ Resize pod resources without restarts (reduce downtime and improve resource efficiency)
 
 
 ## 1) 🔍 Image Vulnerability Scanning with Trivy
@@ -429,11 +431,24 @@ minikube image load demo-resize:0.1 -p demo
 kubectl apply -f demo-api-resize.yaml
 ```
 
-### 6.3) Patch the pod and observe the behaviour
-```bash
-# We recommend to keep running in parallel to observe if it restarts or not
-kubectl get pods -n apps -l app=demo-resize -w
+### 6.3) Memory leak pod -> 🔃 restarts
+We have created another endpoint at `127.0.0.1:8080/memory`. It will consume memory making the pod eventually 💀⚠️ crash. We recommend that you access the logs, and evaluate if it restarts after 10-20s:
 
+```bash
+# From the infiltrated pod
+kubectl exec -n monitoring -it infiltrated -- bash
+# Call it even > 1
+curl <IP-api-demo>:8080/memory
+
+# (In parallel) Observe the behaviour
+kubectl get pods -n apps -l app=demo-resize -w
+```
+
+
+### 6.4) 🆕 Pod resizing
+Now that you have suffered the restart, what if we could change resources in the pod without provoking a restart?
+
+```bash
 # Patch Memory - Should NOT restart
 kubectl patch pod POD_NAME -n apps --subresource resize --patch '{"spec":{"containers":[{"name":"demo-resize", "resources":{"requests":{"memory":"100Mi"}, "limits":{"memory":"1Gi"}}}]}}'
 
