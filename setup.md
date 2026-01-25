@@ -33,12 +33,11 @@ choco install minikube -y
 ## 2) Start Minikube inside Docker
 
 ```bash
-minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.2
-# kubernetes-version=v1.35.0 soon in Feb 26 (AKS)
+minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.35.0
 
-# minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.34.2 --cni=calico // For the security demo
+# minikube start -p demo --driver=docker --container-runtime=containerd --kubernetes-version=v1.35.0 --cni=calico // For the security demo
 
-## TO ALLOW POD RESIZING in minikube
+## Only necessary for k8s versions < 1.35.0
 #  --extra-config=apiserver.feature-gates=InPlacePodVerticalScaling=true, InPlacePodLevelResourcesVerticalScaling=true,PodLevelResources=true,NodeDeclaredFeatures=true --extra-config=kubelet.feature-gates=InPlacePodVerticalScaling=true,InPlacePodLevelResourcesVerticalScaling=true,PodLevelResources=true,NodeDeclaredFeatures=true
 
 
