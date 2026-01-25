@@ -410,6 +410,42 @@ dump-pod-info
 switch-ns 
 ```
 
+# 6) 🚀 Pod Resize Without Restart
+
+### 6.1) Build/tag the new resize image
+```bash
+# Build (or tag) the resize-friendly image from root directory
+docker build -t demo-resize:0.1 -f demo-aspire/Demo.Api/Dockerfile demo-aspire/Demo.Api
+
+# Alternative
+docker tag demo-api:0.1 demo-resize:0.1
+
+# Load the image
+minikube image load demo-resize:0.1 -p demo
+```
+
+### 6.2) Deploy the resize-ready app
+```bash
+kubectl apply -f demo-api-resize.yaml
+```
+
+### 6.3) Patch the pod and observe the behaviour
+```bash
+# We recommend to keep running in parallel to observe if it restarts or not
+kubectl get pods -n apps -l app=demo-resize -w
+
+# Patch Memory - Should NOT restart
+kubectl patch pod POD_NAME -n apps --subresource resize --patch '{"spec":{"containers":[{"name":"demo-resize", "resources":{"requests":{"memory":"100Mi"}, "limits":{"memory":"1Gi"}}}]}}'
+
+# Path CPU - Should restart
+kubectl patch pod POD_NAME -n apps --subresource resize --patch '{"spec":{"containers":[{"name":"demo-resize", "resources":{"requests":{"cpu":"100m"}, "limits":{"cpu":"400m"}}}]}}'
+
+# Evaluate the changes in the pod
+kubectl describe pod POD_NAME -n apps
+
+```
+
+
 ## 📚 Additional Resources
 
 ### Documentation
