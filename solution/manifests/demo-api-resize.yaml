@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: demo-api
+  name: demo-resize
   namespace: apps
   labels:
-    app: demo-api
+    app: demo-resize
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: demo-api
+      app: demo-resize
   template:
     metadata:
       labels:
-        app: demo-api
+        app: demo-resize
     spec:
       containers:
-        - name: demo-api
-          image: demo-api:0.2
+        - name: demo-resize
+          image: demo-resize:0.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -55,11 +55,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: demo-api
+  name: demo-resize
   namespace: apps
 spec:
   selector:
-    app: demo-api
+    app: demo-resize
   ports:
     - name: http
       port: 80
